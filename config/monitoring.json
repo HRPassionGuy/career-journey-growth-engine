@@ -1,6 +1,9 @@
 {
   "timeZone": "America/Detroit",
   "pollIntervalMs": 60000,
+  "dispatch": {
+    "redispatchAfterMs": 300000
+  },
   "heartbeat": {
     "intervalMs": 60000,
     "staleAfterMs": 900000

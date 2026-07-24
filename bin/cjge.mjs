@@ -185,6 +185,10 @@ if (command === "init") {
       updatedAt: new Date().toISOString(),
       dueAt: payload.dueAt || null,
       activeExecutionId: null
+      ,
+      attempt: 1,
+      lastDispatchAt: null,
+      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[capability.owner]?.threadId || null
     });
   });
   console.log(JSON.stringify({ assignmentId, owner: capability.owner, capabilityId }));

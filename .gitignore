@@ -4,6 +4,7 @@
 !.env.example
 node_modules/
 state/*.json
+!state/*.example.json
 state/*.lock
 state/*.tmp
 logs/

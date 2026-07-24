@@ -90,3 +90,19 @@ test("n8n workflow exports do not contain credentials", () => {
     assert.match(content, /CJGE_WEBHOOK_TOKEN/);
   }
 });
+
+test("dispatch requests are idempotently throttled without claiming executive work", async () => {
+  const stateFile = tempState();
+  run(["init"], stateFile);
+  run(["delegate", "REV-OPS-001", JSON.stringify({ objective: "dispatch test" })], stateFile);
+  const env = { ...process.env, CJGE_STATE_FILE: stateFile };
+  const daemon = path.join(root, "bin", "daemon.mjs");
+  const first = spawnSync(node, [daemon, "--once"], { cwd: root, env, encoding: "utf8" });
+  assert.equal(first.status, 0, first.stderr);
+  const second = spawnSync(node, [daemon, "--once"], { cwd: root, env, encoding: "utf8" });
+  assert.equal(second.status, 0, second.stderr);
+  const state = JSON.parse(fs.readFileSync(stateFile));
+  assert.equal(state.assignments[0].status, "queued");
+  assert.equal(state.executions.length, 0);
+  assert.equal(state.dispatchLog.length, 1);
+});
