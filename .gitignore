@@ -10,3 +10,5 @@ state/*.tmp
 logs/
 coverage/
 n8n/credentials/
+bin/cloudflared
+logs/*.log

@@ -2,8 +2,8 @@
 
 These exported workflows call the Career Journey Growth Engine worker endpoint. Import the JSON files into the existing n8n instance and configure:
 
-- `CJGE_BASE_URL`: an HTTPS URL that can reach `bin/worker-server`
-- `CJGE_WEBHOOK_TOKEN`: the same bearer token used by the worker server
+- n8n variable `CJGE_BASE_URL`: an HTTPS URL that can reach `bin/worker-server`
+- n8n variable `CJGE_WEBHOOK_TOKEN`: the same bearer token used by the worker server
 
 Credentials and tokens are never stored in these exports.
 

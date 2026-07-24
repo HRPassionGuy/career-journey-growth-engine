@@ -87,7 +87,7 @@ test("n8n workflow exports do not contain credentials", () => {
     const content = fs.readFileSync(path.join(directory, file), "utf8");
     JSON.parse(content);
     assert.doesNotMatch(content, /Bearer [A-Za-z0-9_-]{16,}/);
-    assert.match(content, /CJGE_WEBHOOK_TOKEN/);
+    assert.match(content, /\$vars\.CJGE_WEBHOOK_TOKEN/);
   }
 });
 

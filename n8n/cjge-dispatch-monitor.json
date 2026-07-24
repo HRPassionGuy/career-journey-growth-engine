@@ -12,9 +12,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.CJGE_BASE_URL + '/tick'}}",
+        "url": "={{$vars.CJGE_BASE_URL + '/tick'}}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $vars.CJGE_WEBHOOK_TOKEN}}" }] },
         "options": { "timeout": 30000 }
       },
       "id": "tick",
@@ -25,9 +25,9 @@
     },
     {
       "parameters": {
-        "url": "={{$env.CJGE_BASE_URL + '/monitor'}}",
+        "url": "={{$vars.CJGE_BASE_URL + '/monitor'}}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $vars.CJGE_WEBHOOK_TOKEN}}" }] },
         "options": { "timeout": 30000 }
       },
       "id": "monitor",

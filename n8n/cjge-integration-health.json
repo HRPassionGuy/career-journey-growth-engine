@@ -11,9 +11,9 @@
     },
     {
       "parameters": {
-        "url": "={{$env.CJGE_BASE_URL + '/health'}}",
+        "url": "={{$vars.CJGE_BASE_URL + '/health'}}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $vars.CJGE_WEBHOOK_TOKEN}}" }] },
         "options": { "timeout": 15000 }
       },
       "id": "health",
@@ -24,9 +24,9 @@
     },
     {
       "parameters": {
-        "url": "={{$env.CJGE_BASE_URL + '/integrations'}}",
+        "url": "={{$vars.CJGE_BASE_URL + '/integrations'}}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $vars.CJGE_WEBHOOK_TOKEN}}" }] },
         "options": { "timeout": 15000 }
       },
       "id": "integrations",
