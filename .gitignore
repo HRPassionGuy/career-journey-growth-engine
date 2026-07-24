@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+state/*.json
+state/*.lock
+state/*.tmp
+logs/
+coverage/
+n8n/credentials/

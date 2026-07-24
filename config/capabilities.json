@@ -1,0 +1,156 @@
+[
+  {
+    "id": "REV-OPS-001",
+    "name": "Stan purchase and lead follow-up",
+    "owner": "vp-revenue",
+    "support": ["analytics"],
+    "tools": ["Gmail", "Stan Store", "in-app browser"],
+    "trigger": "new purchase, freebie lead, reply, unsubscribe, or daily review",
+    "deliverable": "personalized follow-up, approved upsell path, suppression update, pipeline record",
+    "approval": "Send personalized authorized follow-ups; CEO approval for bulk outreach, new prices, or new offers",
+    "legacySource": "Drive Stan Store Sales"
+  },
+  {
+    "id": "REV-OPS-002",
+    "name": "LinkedIn Services opportunity response",
+    "owner": "vp-revenue",
+    "support": ["marketing"],
+    "tools": ["LinkedIn", "in-app browser"],
+    "trigger": "new or warm current Services request",
+    "deliverable": "verified personalized diagnostic proposal and opportunity record",
+    "approval": "Use only authorized offers; do not bulk-send or process stale requests",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "ANA-OPS-001",
+    "name": "Stan traffic attribution and conversion review",
+    "owner": "analytics",
+    "support": ["vp-revenue", "marketing"],
+    "tools": ["Stan Store", "in-app browser"],
+    "trigger": "daily and material traffic or conversion change",
+    "deliverable": "channel attribution, product clicks, conversions, anomalies, recommendation",
+    "approval": "Read and analyze autonomously",
+    "legacySource": "Drive Stan Store Sales"
+  },
+  {
+    "id": "CRE-OPS-001",
+    "name": "Daily short-form video scripts",
+    "owner": "creative",
+    "support": ["research", "vp-revenue"],
+    "tools": ["TikTok", "Instagram", "YouTube", "Gmail"],
+    "trigger": "daily",
+    "deliverable": "two 65+ second platform-ready scripts with strong hooks and approved CTA",
+    "approval": "Draft autonomously; Marcus records face-to-camera video",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "CRE-OPS-002",
+    "name": "Instagram and LinkedIn carousel production",
+    "owner": "creative",
+    "support": ["marketing"],
+    "tools": ["Instagram", "LinkedIn", "in-app browser"],
+    "trigger": "daily Instagram; Tuesday and Thursday LinkedIn",
+    "deliverable": "six-slide carousel, caption, hashtags, CTA, publishing handoff",
+    "approval": "Publish or schedule authorized brand content; escalate account or policy changes",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "MKT-OPS-001",
+    "name": "Campaign publishing and distribution",
+    "owner": "marketing",
+    "support": ["creative", "community", "analytics"],
+    "tools": ["Instagram", "TikTok", "LinkedIn", "Facebook", "YouTube", "in-app browser"],
+    "trigger": "content-ready event and publishing calendar",
+    "deliverable": "verified published or scheduled asset with URL and campaign record",
+    "approval": "Authorized content may publish; high-risk claims, partnerships, paid spend, and account changes require approval",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "MKT-OPS-002",
+    "name": "Instagram keyword auto-DM campaign",
+    "owner": "marketing",
+    "support": ["vp-revenue", "automation"],
+    "tools": ["Instagram", "Stan Store", "n8n", "in-app browser"],
+    "trigger": "approved lead magnet or campaign launch",
+    "deliverable": "keyword CTA, verified auto-DM path, campaign tracking",
+    "approval": "New automation or message sequence requires CEO approval before activation",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "COM-OPS-001",
+    "name": "High-intent social engagement",
+    "owner": "community",
+    "support": ["research", "vp-revenue"],
+    "tools": ["LinkedIn", "TikTok", "Instagram", "YouTube", "Reddit", "Facebook", "in-app browser"],
+    "trigger": "daily platform pass and relevant fresh post",
+    "deliverable": "thoughtful verified comment, post URL, visible engagement signal, buyer-language insight",
+    "approval": "Comment autonomously within brand rules; no unsolicited product link or spam",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "COM-OPS-002",
+    "name": "Career and job Facebook group participation",
+    "owner": "community",
+    "support": ["creative"],
+    "tools": ["Facebook", "in-app browser"],
+    "trigger": "daily group review and approved group publishing calendar",
+    "deliverable": "verified helpful answer/comment/post and voice-of-customer insight",
+    "approval": "Use Marcus R Holmes identity where required; respect group rules and moderation risk",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "MKT-OPS-003",
+    "name": "SEO and AEO blog publishing",
+    "owner": "marketing",
+    "support": ["research", "creative", "analytics"],
+    "tools": ["Weebly", "Google Search Console", "Bing Webmaster", "in-app browser"],
+    "trigger": "Monday and Friday",
+    "deliverable": "original people-first article, verified live URL, indexing submission, campaign record",
+    "approval": "Publish evidence-based authorized content; do not claim guaranteed rankings",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "RPD-OPS-001",
+    "name": "Buyer-intent and niche signal research",
+    "owner": "research",
+    "support": ["marketing", "creative"],
+    "tools": ["Google Alerts", "AnswerThePublic", "Google", "Bing", "Reddit", "LinkedIn", "TikTok", "YouTube"],
+    "trigger": "daily alerts and content/revenue research request",
+    "deliverable": "ranked demand signals, customer language, credible sources, recommended use",
+    "approval": "Read and analyze autonomously",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "ANA-OPS-002",
+    "name": "Search performance monitoring",
+    "owner": "analytics",
+    "support": ["marketing", "research"],
+    "tools": ["Google Search Console", "Bing Webmaster", "in-app browser"],
+    "trigger": "Monday and Friday after publishing; weekly performance review",
+    "deliverable": "indexing status, queries, impressions, clicks, position changes, corrective recommendation",
+    "approval": "Read and submit approved URLs autonomously",
+    "legacySource": "Drive Organic Product Sales"
+  },
+  {
+    "id": "AUT-OPS-001",
+    "name": "n8n and browser automation operations",
+    "owner": "automation",
+    "support": ["chief-of-staff"],
+    "tools": ["n8n", "Codex automations", "in-app browser"],
+    "trigger": "workflow schedule, event, failure, timeout, or retry-needed status",
+    "deliverable": "verified run, retry, failure record, or precise approval/login blocker",
+    "approval": "Operate approved workflows; new credentials, destructive actions, account settings, or business logic require approval",
+    "legacySource": "Drive Stan Store Sales and Drive Organic Product Sales"
+  },
+  {
+    "id": "COS-OPS-001",
+    "name": "Daily revenue execution briefing",
+    "owner": "chief-of-staff",
+    "support": ["vp-revenue", "marketing", "creative", "community", "analytics", "research", "automation"],
+    "tools": ["Codex", "shared operating state"],
+    "trigger": "daily close and material risk",
+    "deliverable": "verified completed, pending-retry-today, blocked, KPI, decision, and next-priority summary",
+    "approval": "Coordinate autonomously; escalate CEO-reserved decisions",
+    "legacySource": "Drive Stan Store Sales and Drive Organic Product Sales"
+  }
+]

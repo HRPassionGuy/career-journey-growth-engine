@@ -1,0 +1,58 @@
+{
+  "chief-of-staff": {
+    "name": "Chief of Staff",
+    "runtime": "docs/runtime/chief-of-staff-runtime.md",
+    "charter": "agents/chief-of-staff.md",
+    "procedures": "docs/procedures/chief-of-staff",
+    "owns": ["routing", "prioritization", "cross-functional coordination", "executive briefing", "risk escalation"]
+  },
+  "vp-revenue": {
+    "name": "VP of Revenue",
+    "runtime": "docs/runtime/vp-revenue-runtime.md",
+    "charter": "agents/vp-revenue.md",
+    "procedures": "docs/procedures/vp-revenue",
+    "owns": ["Stan purchases", "sales follow-up", "upsells", "offers", "conversion", "revenue pipeline"]
+  },
+  "marketing": {
+    "name": "Marketing Director",
+    "runtime": "docs/runtime/marketing-director-runtime.md",
+    "charter": "agents/marketing-director.md",
+    "procedures": "docs/procedures/marketing",
+    "owns": ["campaigns", "distribution", "publishing", "channel acquisition", "partnerships", "LinkedIn RFP campaigns"]
+  },
+  "creative": {
+    "name": "Creative Director",
+    "runtime": "docs/runtime/creative-director-runtime.md",
+    "charter": "agents/creative-director.md",
+    "procedures": "docs/procedures/creative",
+    "owns": ["TikTok scripts", "Instagram carousels", "blog drafts", "content strategy", "creative quality"]
+  },
+  "community": {
+    "name": "Director of Community",
+    "runtime": "docs/runtime/community-director-runtime.md",
+    "charter": "agents/director-community.md",
+    "procedures": "docs/procedures/community",
+    "owns": ["comments", "replies", "Facebook groups", "Reddit", "LinkedIn and YouTube engagement", "voice of customer"]
+  },
+  "analytics": {
+    "name": "Director of Analytics",
+    "runtime": "docs/runtime/analytics-director-runtime.md",
+    "charter": "agents/director-analytics.md",
+    "procedures": "docs/procedures/analytics",
+    "owns": ["Stan attribution", "Google Search Console", "Bing Webmaster", "KPIs", "experiments", "performance analysis"]
+  },
+  "research": {
+    "name": "Director of Research & Product Development",
+    "runtime": "docs/runtime/research-product-development-runtime.md",
+    "charter": "agents/director-research-product-development.md",
+    "procedures": "docs/procedures/research",
+    "owns": ["Google Alerts", "AnswerThePublic", "niche research", "SEO questions", "product opportunities"]
+  },
+  "automation": {
+    "name": "Director of Automation",
+    "runtime": "docs/runtime/automation-director-runtime.md",
+    "charter": "agents/director-automation.md",
+    "procedures": "docs/procedures/automation",
+    "owns": ["Codex automations", "n8n", "browser workflow reliability", "retries", "integration failures"]
+  }
+}

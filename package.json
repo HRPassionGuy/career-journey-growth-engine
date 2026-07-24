@@ -1,0 +1,15 @@
+{
+  "name": "career-journey-growth-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "init": "node bin/cjge.mjs init",
+    "status": "node bin/cjge.mjs status",
+    "daily": "node bin/cjge.mjs daily",
+    "briefing": "node bin/cjge.mjs briefing",
+    "daemon": "node bin/daemon.mjs",
+    "worker-server": "node bin/worker-server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

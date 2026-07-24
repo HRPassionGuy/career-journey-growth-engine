@@ -1,0 +1,47 @@
+{
+  "name": "CJGE Dispatch, Retry, and Heartbeat Monitor",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 1 }] } },
+      "id": "schedule",
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.CJGE_BASE_URL + '/tick'}}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "options": { "timeout": 30000 }
+      },
+      "id": "tick",
+      "name": "Create, Recover, Dispatch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.CJGE_BASE_URL + '/monitor'}}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "options": { "timeout": 30000 }
+      },
+      "id": "monitor",
+      "name": "Read Queue Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 0]
+    }
+  ],
+  "connections": {
+    "Every Minute": { "main": [[{ "node": "Create, Recover, Dispatch", "type": "main", "index": 0 }]] },
+    "Create, Recover, Dispatch": { "main": [[{ "node": "Read Queue Health", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "America/Detroit" },
+  "active": false,
+  "versionId": "cjge-dispatch-monitor-v1"
+}

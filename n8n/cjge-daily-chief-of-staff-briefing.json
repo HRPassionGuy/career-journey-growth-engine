@@ -1,0 +1,30 @@
+{
+  "name": "CJGE Daily Chief of Staff Briefing",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "45 6 * * *" }] } },
+      "id": "schedule",
+      "name": "Daily 6:45 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.CJGE_BASE_URL + '/briefing'}}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "options": { "timeout": 30000 }
+      },
+      "id": "briefing",
+      "name": "Get Verified Briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": { "Daily 6:45 AM": { "main": [[{ "node": "Get Verified Briefing", "type": "main", "index": 0 }]] } },
+  "settings": { "executionOrder": "v1", "timezone": "America/Detroit" },
+  "active": false,
+  "versionId": "cjge-daily-briefing-v1"
+}

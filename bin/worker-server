@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+NODE="${CJGE_NODE:-/Users/marcusholmes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node}"
+exec "$NODE" "$ROOT/bin/worker-server.mjs" "$@"

@@ -1,0 +1,42 @@
+{
+  "chief-of-staff": {
+    "threadId": "019f91bb-cd62-75b3-b8e0-99ff18c79a7d",
+    "hostId": "local",
+    "entryPoint": "./bin/executive chief-of-staff"
+  },
+  "vp-revenue": {
+    "threadId": "019f91e4-92f1-7d73-86c1-71a541b738c4",
+    "hostId": "local",
+    "entryPoint": "./bin/executive vp-revenue"
+  },
+  "marketing": {
+    "threadId": "019f91e4-af22-7b23-8dc2-0d78a05de724",
+    "hostId": "local",
+    "entryPoint": "./bin/executive marketing"
+  },
+  "creative": {
+    "threadId": "019f91e4-d0d1-7670-bf0b-c21143e00db6",
+    "hostId": "local",
+    "entryPoint": "./bin/executive creative"
+  },
+  "community": {
+    "threadId": "019f91e4-ed6e-71d2-8a36-192fa788c639",
+    "hostId": "local",
+    "entryPoint": "./bin/executive community"
+  },
+  "analytics": {
+    "threadId": "019f91e5-124f-7323-bfb9-002c3186a3a0",
+    "hostId": "local",
+    "entryPoint": "./bin/executive analytics"
+  },
+  "research": {
+    "threadId": "019f91e5-379b-7400-935f-f097afc61efc",
+    "hostId": "local",
+    "entryPoint": "./bin/executive research"
+  },
+  "automation": {
+    "threadId": "019f91e5-694d-7762-9f36-bbf39511cffe",
+    "hostId": "local",
+    "entryPoint": "./bin/executive automation"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "timeZone": "America/Detroit",
+  "pollIntervalMs": 60000,
+  "heartbeat": {
+    "intervalMs": 60000,
+    "staleAfterMs": 900000
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "baseDelayMs": 60000,
+    "maxDelayMs": 900000
+  },
+  "integrations": [
+    "Gmail",
+    "Stan Store",
+    "LinkedIn",
+    "Reddit",
+    "TikTok",
+    "Facebook",
+    "Instagram",
+    "YouTube",
+    "Weebly",
+    "Google Search Console",
+    "Bing Webmaster",
+    "Google Drive",
+    "n8n"
+  ],
+  "executiveMonitors": [
+    {
+      "capabilityId": "REV-OPS-001",
+      "hours": [8, 13, 17],
+      "priority": "high",
+      "objective": "Review new Stan purchases, freebie leads, replies, and authorized follow-up opportunities.",
+      "requiresExternalAction": false
+    },
+    {
+      "capabilityId": "ANA-OPS-001",
+      "hours": [7, 16],
+      "priority": "normal",
+      "objective": "Review current traffic attribution and material conversion changes.",
+      "requiresExternalAction": false
+    },
+    {
+      "capabilityId": "RPD-OPS-001",
+      "hours": [6, 14],
+      "priority": "normal",
+      "objective": "Review fresh buyer-intent, niche, search, and proposal signals.",
+      "requiresExternalAction": false
+    },
+    {
+      "capabilityId": "COM-OPS-001",
+      "hours": [7, 12, 18],
+      "priority": "normal",
+      "objective": "Identify one fresh high-intent conversation suitable for an authorized substantive response.",
+      "requiresExternalAction": false
+    },
+    {
+      "capabilityId": "AUT-OPS-001",
+      "hours": [6, 12, 18],
+      "priority": "high",
+      "objective": "Check workflow, browser, integration, retry, and stalled-run health.",
+      "requiresExternalAction": false
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "CJGE Integration Health",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
+      "id": "schedule",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.CJGE_BASE_URL + '/health'}}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "options": { "timeout": 15000 }
+      },
+      "id": "health",
+      "name": "Worker Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.CJGE_BASE_URL + '/integrations'}}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{'Bearer ' + $env.CJGE_WEBHOOK_TOKEN}}" }] },
+        "options": { "timeout": 15000 }
+      },
+      "id": "integrations",
+      "name": "Integration Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 0]
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes": { "main": [[{ "node": "Worker Health", "type": "main", "index": 0 }]] },
+    "Worker Health": { "main": [[{ "node": "Integration Status", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "America/Detroit" },
+  "active": false,
+  "versionId": "cjge-integration-health-v1"
+}
