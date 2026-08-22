@@ -1,0 +1,25 @@
+{
+  "source": "deliverables/creative/2026-08-02-application-to-interview-carousel-package.md",
+  "instagram": [
+    "instagram/instagram-01.png",
+    "instagram/instagram-02.png",
+    "instagram/instagram-03.png",
+    "instagram/instagram-04.png",
+    "instagram/instagram-05.png",
+    "instagram/instagram-06.png"
+  ],
+  "linkedin_pngs": [
+    "linkedin/linkedin-01.png",
+    "linkedin/linkedin-02.png",
+    "linkedin/linkedin-03.png",
+    "linkedin/linkedin-04.png",
+    "linkedin/linkedin-05.png",
+    "linkedin/linkedin-06.png"
+  ],
+  "linkedin_pdf": "output/pdf/2026-08-02-linkedin-application-to-interview-carousel.pdf",
+  "dimensions": {
+    "width": 1080,
+    "height": 1080
+  },
+  "publication_status": "not published or scheduled"
+}

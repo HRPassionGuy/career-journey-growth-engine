@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { initializeState, mutateState, readState, root, stateFile } from "../lib/state-store.mjs";
-import { blockerTypes, classifyBlocker, detectAndRecoverStalledExecutions, enqueueProactiveWork, integrationReport, recordHeartbeat, recordIntegrationStatus } from "../lib/runtime-ops.mjs";
+import { blockerTypes, buildChiefOfStaffNotification, classifyBlocker, classifyExecutionFailure, completeEngagement, detectAndRecoverStalledExecutions, enqueueProactiveWork, integrationReport, notificationReport, recordDispatchDelivery, recordHeartbeat, recordIntegrationStatus, releaseEngagement, reserveEngagement, updateNotification } from "../lib/runtime-ops.mjs";
 
 const executives = readJson("config/executives.json");
 const capabilities = readJson("config/capabilities.json");
@@ -188,7 +188,8 @@ if (command === "init") {
       ,
       attempt: 1,
       lastDispatchAt: null,
-      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[capability.owner]?.threadId || null
+      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[capability.owner]?.threadId || null,
+      deliveryStatus: "not_dispatched"
     });
   });
   console.log(JSON.stringify({ assignmentId, owner: capability.owner, capabilityId }));
@@ -228,23 +229,43 @@ if (command === "init") {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       dueAt: parent.dueAt,
-      activeExecutionId: null
+      activeExecutionId: null,
+      attempt: 1,
+      lastDispatchAt: null,
+      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[to]?.threadId || null,
+      deliveryStatus: "not_dispatched"
     });
   });
   console.log(JSON.stringify({ handoffId, assignmentId, from, to }));
+} else if (command === "dispatch") {
+  const [subcommand, assignmentId, ...detailParts] = args;
+  if (subcommand === "delivered") {
+    console.log(JSON.stringify(recordDispatchDelivery(assignmentId, "delivered", {
+      evidence: detailParts.join(" ") || "Codex task accepted follow-up message"
+    })));
+  } else if (subcommand === "failed") {
+    console.log(JSON.stringify(recordDispatchDelivery(assignmentId, "failed", {
+      error: detailParts.join(" ") || "Codex task delivery failed"
+    })));
+  } else if (subcommand === "pending") {
+    const snapshot = readState();
+    console.log(JSON.stringify(snapshot.assignments.filter((item) =>
+      ["queued", "retry"].includes(item.status) && item.deliveryStatus === "pending"
+    ), null, 2));
+  } else {
+    throw new Error("Usage: dispatch pending | dispatch delivered <assignment-id> [evidence] | dispatch failed <assignment-id> <error>");
+  }
 } else if (command === "result") {
   const [assignmentId, executionId, ...payloadParts] = args;
   const payload = JSON.parse(payloadParts.join(" "));
   if (!["completed", "verified_prior_work", "blocked", "failed", "retry"].includes(payload.status)) {
     throw new Error(`Invalid result status: ${payload.status}`);
   }
-  if (payload.status === "completed" && payload.externalActionRequired && !payload.externalActionAt) {
-    throw new Error("A completed external-action result requires externalActionAt");
-  }
   if (payload.status === "verified_prior_work" && payload.externalActionAt) {
     throw new Error("verified_prior_work cannot claim externalActionAt");
   }
   const resultId = `RES-${Date.now()}-${process.pid}`;
+  let recordedStatus = payload.status;
   mutateState((draft) => {
     const assignment = draft.assignments.find((candidate) => candidate.id === assignmentId);
     const execution = draft.executions.find((candidate) => candidate.id === executionId);
@@ -253,18 +274,53 @@ if (command === "init") {
     }
     const requiredExternal = assignment.requiresExternalAction || payload.externalActionRequired;
     if (payload.status === "completed" && requiredExternal && !payload.externalActionAt) {
-      throw new Error("Assignment requires a timestamped external action");
+      recordedStatus = payload.blocker ? "blocked" : "retry";
     }
-    execution.status = payload.status;
+    const actionAt = payload.externalActionAt ? Date.parse(payload.externalActionAt) : null;
+    const verifiedAt = payload.verifiedAt ? Date.parse(payload.verifiedAt) : Date.now();
+    const startedAt = Date.parse(execution.startedAt);
+    const now = Date.now();
+    if (payload.externalActionAt && !Number.isFinite(actionAt)) {
+      throw new Error("externalActionAt must be a valid timestamp");
+    }
+    if (payload.verifiedAt && !Number.isFinite(verifiedAt)) {
+      throw new Error("verifiedAt must be a valid timestamp");
+    }
+    if (actionAt !== null && actionAt < startedAt) {
+      throw new Error("externalActionAt must occur during the current execution");
+    }
+    if (actionAt !== null && actionAt > now) {
+      throw new Error("externalActionAt cannot be in the future");
+    }
+    if (actionAt !== null && verifiedAt < actionAt) {
+      throw new Error("verifiedAt cannot precede externalActionAt");
+    }
+    execution.status = recordedStatus;
     execution.finishedAt = new Date().toISOString();
-    assignment.status = payload.status === "completed" || payload.status === "verified_prior_work" ? "completed" : payload.status;
+    assignment.status = recordedStatus === "completed" || recordedStatus === "verified_prior_work" ? "completed" : recordedStatus;
     assignment.updatedAt = execution.finishedAt;
+    assignment.activeExecutionId = null;
+    draft.heartbeats[executionId] = {
+      executive: execution.executive,
+      executionId,
+      status: recordedStatus,
+      assignmentId,
+      updatedAt: execution.finishedAt,
+      details: payload.summary || null
+    };
     draft.results.push({
       id: resultId,
       assignmentId,
       executionId,
       executive: execution.executive,
-      status: payload.status,
+      status: recordedStatus,
+      requestedStatus: payload.status,
+      completionIntegrity: recordedStatus !== payload.status ? {
+        normalized: true,
+        reason: "required_external_action_not_verified",
+        originalStatus: payload.status,
+        recordedStatus
+      } : null,
       summary: payload.summary || "",
       evidence: payload.evidence || [],
       blocker: payload.blocker || null,
@@ -283,7 +339,7 @@ if (command === "init") {
       handoff.resultId = resultId;
     }
   });
-  console.log(JSON.stringify({ resultId, assignmentId, executionId, status: payload.status }));
+  console.log(JSON.stringify({ resultId, assignmentId, executionId, status: recordedStatus, requestedStatus: payload.status }));
 } else if (command === "monitor") {
   const snapshot = readState();
   const now = Date.now();
@@ -304,6 +360,24 @@ if (command === "init") {
   console.log(JSON.stringify({ updatedAt: recordHeartbeat(executive, executionId, { assignmentId, status }) }));
 } else if (command === "recover") {
   console.log(JSON.stringify({ recovered: detectAndRecoverStalledExecutions() }));
+} else if (command === "incident") {
+  const [subcommand, executionId, classification, ...detail] = args;
+  if (subcommand !== "classify") {
+    throw new Error("Usage: incident classify <execution-id> <classification> <detail>");
+  }
+  console.log(JSON.stringify(classifyExecutionFailure(executionId, classification, detail.join(" ")), null, 2));
+} else if (command === "notification") {
+  const [subcommand, ...notificationArgs] = args;
+  if (subcommand === "list") {
+    console.log(JSON.stringify(notificationReport(), null, 2));
+  } else if (subcommand === "dry-run") {
+    console.log(JSON.stringify(buildChiefOfStaffNotification(JSON.parse(notificationArgs.join(" "))), null, 2));
+  } else if (["sent", "resolved"].includes(subcommand)) {
+    const [notificationId, ...detail] = notificationArgs;
+    console.log(JSON.stringify(updateNotification(notificationId, subcommand, detail.join(" ")), null, 2));
+  } else {
+    throw new Error("Usage: notification list | dry-run '<json>' | sent <notification-id> <delivery-evidence> | resolved <notification-id> <resolution>");
+  }
 } else if (command === "proactive") {
   console.log(JSON.stringify({ created: enqueueProactiveWork(args[0] ? new Date(args[0]) : new Date()) }));
 } else if (command === "integration") {
@@ -321,6 +395,22 @@ if (command === "init") {
     console.log(JSON.stringify({ name, status, blockerType }));
   } else {
     throw new Error(`Usage: integration list | integration set <name> <healthy|degraded|blocked|unknown> <message>. Types: ${blockerTypes.join(", ")}`);
+  }
+} else if (command === "engagement") {
+  const [subcommand, ...engagementArgs] = args;
+  if (subcommand === "reserve") {
+    const [platform, postId, creatorAccount, assignmentId] = engagementArgs;
+    console.log(JSON.stringify(reserveEngagement({ platform, postId, creatorAccount, assignmentId })));
+  } else if (subcommand === "complete") {
+    const [reservationId, externalActionAt, verifiedAt] = engagementArgs;
+    console.log(JSON.stringify(completeEngagement(reservationId, externalActionAt, verifiedAt)));
+  } else if (subcommand === "release") {
+    const [reservationId, ...reason] = engagementArgs;
+    console.log(JSON.stringify(releaseEngagement(reservationId, reason.join(" ") || "action_not_performed")));
+  } else if (subcommand === "list") {
+    console.log(JSON.stringify(readState().engagementLedger, null, 2));
+  } else {
+    throw new Error("Usage: engagement reserve <platform> <post-id> <creator-account> <assignment-id> | complete <reservation-id> <external-action-at> <verified-at> | release <reservation-id> <reason> | list");
   }
 } else if (command === "consolidate") {
   const snapshot = readState();

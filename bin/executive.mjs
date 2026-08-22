@@ -47,16 +47,20 @@ mutateState((draft) => {
   if (!durableAssignment || !["queued", "retry"].includes(durableAssignment.status)) {
     throw new Error(`Assignment is no longer claimable: ${assignment.id}`);
   }
+  const startedAt = new Date().toISOString();
   durableAssignment.status = "in_progress";
-  durableAssignment.updatedAt = new Date().toISOString();
+  durableAssignment.updatedAt = startedAt;
   durableAssignment.activeExecutionId = executionId;
+  durableAssignment.deliveryStatus = "delivered";
+  durableAssignment.deliveredAt = startedAt;
+  durableAssignment.deliveryError = null;
   draft.executions.push({
     id: executionId,
     assignmentId: assignment.id,
     executive: slug,
     status: "running",
-    startedAt: new Date().toISOString(),
-    lastHeartbeatAt: new Date().toISOString(),
+    startedAt,
+    lastHeartbeatAt: startedAt,
     finishedAt: null,
     processId: process.pid,
     loadedSources: {
@@ -65,6 +69,24 @@ mutateState((draft) => {
       procedures: loaded.procedures.map((item) => item.file),
       capability: capability.id
     }
+  });
+  draft.heartbeats[executionId] = {
+    executive: slug,
+    executionId,
+    status: "running",
+    assignmentId: assignment.id,
+    updatedAt: startedAt,
+    details: "Assignment claimed through executive entry point"
+  };
+  draft.dispatchLog.push({
+    assignmentId: assignment.id,
+    executive: slug,
+    dispatchedAt: durableAssignment.lastDispatchAt || null,
+    recordedAt: startedAt,
+    runtimeThreadId: durableAssignment.runtimeThreadId || null,
+    status: "delivered_to_thread",
+    deliveryEvidence: "Executive entry point claimed assignment",
+    executionId
   });
 });
 

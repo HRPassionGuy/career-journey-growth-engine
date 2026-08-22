@@ -9,7 +9,7 @@ Credentials and tokens are never stored in these exports.
 
 ## Workflows
 
-- `cjge-dispatch-monitor.json`: polls every minute, creates proactive assignments, dispatches due work, recovers stalled executions, and returns current queue state.
+- `cjge-dispatch-monitor.json`: polls every 15 minutes, creates proactive assignments, dispatches only due work, recovers stalled executions, and returns current queue state.
 - `cjge-daily-chief-of-staff-briefing.json`: collects the verified daily briefing at 6:45 AM America/Detroit.
 - `cjge-integration-health.json`: checks the worker and retrieves the visible integration-status matrix every 15 minutes.
 

@@ -2,7 +2,7 @@
   "name": "CJGE Dispatch, Retry, and Heartbeat Monitor",
   "nodes": [
     {
-      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 1 }] } },
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
       "id": "schedule",
       "name": "Every Minute",
       "type": "n8n-nodes-base.scheduleTrigger",

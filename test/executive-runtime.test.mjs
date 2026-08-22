@@ -99,26 +99,53 @@ test("state mutations are concurrency safe", async () => {
   }
 });
 
-test("temporal evidence integrity is enforced", () => {
+test("no-action completion is preserved as evidence while commercial work stays open", () => {
+  for (const [owner, capabilityId] of [
+    ["vp-revenue", "REV-OPS-001"],
+    ["marketing", "MKT-OPS-001"],
+    ["community", "COM-OPS-001"]
+  ]) {
+    const env = environment();
+    run(cli, ["init"], env);
+    const assignment = JSON.parse(run(cli, [
+      "delegate",
+      capabilityId,
+      JSON.stringify({ objective: `${owner} external work`, requiresExternalAction: true })
+    ], env));
+    const invocation = JSON.parse(run(executive, [owner, assignment.assignmentId], env));
+    const result = JSON.parse(run(cli, [
+      "result",
+      assignment.assignmentId,
+      invocation.executionId,
+      JSON.stringify({
+        status: "completed",
+        summary: "Analysis completed but no external action occurred",
+        evidence: ["analysis-evidence"],
+        metrics: { new_external_actions: 0 },
+        verifiedAt: new Date().toISOString()
+      })
+    ], env));
+    assert.equal(result.status, "retry");
+    assert.equal(result.requestedStatus, "completed");
+    const state = JSON.parse(fs.readFileSync(env.CJGE_STATE_FILE));
+    assert.equal(state.assignments[0].status, "retry");
+    assert.equal(state.results[0].status, "retry");
+    assert.deepEqual(state.results[0].evidence, ["analysis-evidence"]);
+    assert.equal(state.results[0].completionIntegrity.reason, "required_external_action_not_verified");
+  }
+});
+
+test("external-action timestamps must belong to the current execution", () => {
   const env = environment();
   run(cli, ["init"], env);
-  const assignment = JSON.parse(run(cli, [
-    "delegate",
-    "COM-OPS-001",
-    JSON.stringify({ objective: "Submit a new comment", requiresExternalAction: true })
-  ], env));
+  const assignment = JSON.parse(run(cli, ["delegate", "COM-OPS-001", JSON.stringify({
+    objective: "Submit a new comment", requiresExternalAction: true
+  })], env));
   const invocation = JSON.parse(run(executive, ["community", assignment.assignmentId], env));
-
-  run(cli, [
-    "result",
-    assignment.assignmentId,
-    invocation.executionId,
-    JSON.stringify({
-      status: "completed",
-      summary: "Unsupported completion",
-      evidence: [],
-      metrics: {},
-      verifiedAt: new Date().toISOString()
-    })
-  ], env, 1);
+  run(cli, ["result", assignment.assignmentId, invocation.executionId, JSON.stringify({
+    status: "completed",
+    summary: "Stale action evidence",
+    externalActionAt: "2020-01-01T00:00:00.000Z",
+    verifiedAt: new Date().toISOString()
+  })], env, 1);
 });

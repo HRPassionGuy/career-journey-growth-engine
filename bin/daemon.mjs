@@ -14,7 +14,7 @@ function dispatch(assignment) {
 async function tick() {
   const recovered = detectAndRecoverStalledExecutions();
   const created = enqueueProactiveWork();
-  const dispatched = dueAssignments().map(dispatch);
+  const dispatched = dueAssignments().map(dispatch).filter(Boolean);
   const summary = { at: new Date().toISOString(), created, recovered, dispatched };
   console.log(JSON.stringify(summary));
   return summary;

@@ -1,0 +1,45 @@
+{
+  "assignmentId": "ASN-ANA-OPS-001-1787267672393-95632",
+  "asOf": "2026-08-20T23:29:00Z",
+  "scope": {
+    "product": "Cover Letter Template That Gets Read",
+    "window": "Most recent 30 days ending 2026-08-20; bounded by Chief of Staff to the latest six evaluable transactions",
+    "maximumCohortSize": 6,
+    "transactionCountReviewed": 6,
+    "uniquePurchaserCount": 6
+  },
+  "eligibilityRule": "Include a unique purchaser only when transaction-level purchase proof exists, an email is present, no duplicate is selected, and an independently supported mailbox-deliverability, prior-follow-up, reply, unsubscribe, and suppression review does not exclude the buyer. Stan's transaction-delivery state alone is not a global mailbox-deliverability determination.",
+  "aggregate": {
+    "emailPresent": 6,
+    "stanTransactionDeliveryEmailUndelivered": 6,
+    "globallyUndeliverableAddressesVerified": 0,
+    "eligible": null,
+    "eligibilityNotDetermined": 6,
+    "mailboxChecksPerformed": 0,
+    "reasonMailboxChecksNotPerformed": "The bounded review did not perform the independent mailbox-history and suppression checks required to determine cohort eligibility."
+  },
+  "buyers": [
+    {"subjectId":"CL30-f8b2a8af9c96","purchaseTimestamp":"2026-08-18T13:00:00-04:00","emailPresent":true,"stanTransactionDeliveryEmailStatus":"undelivered_bounce_reason_unknown","globalMailboxDeliverability":"not_determined","duplicateStatus":"unique_within_bounded_six","priorFollowup":"not_assessed","replyStatus":"not_assessed","unsubscribeSuppression":"not_assessed","eligible":null},
+    {"subjectId":"CL30-aba63e9b5e63","purchaseTimestamp":"2026-08-14T17:02:00-04:00","emailPresent":true,"stanTransactionDeliveryEmailStatus":"undelivered_bounce_reason_unknown","globalMailboxDeliverability":"not_determined","duplicateStatus":"unique_within_bounded_six","priorFollowup":"not_assessed","replyStatus":"not_assessed","unsubscribeSuppression":"not_assessed","eligible":null},
+    {"subjectId":"CL30-9f6b95697989","purchaseTimestamp":"2026-08-14T05:45:00-04:00","emailPresent":true,"stanTransactionDeliveryEmailStatus":"undelivered_bounce_reason_unknown","globalMailboxDeliverability":"not_determined","duplicateStatus":"unique_within_bounded_six","priorFollowup":"not_assessed","replyStatus":"not_assessed","unsubscribeSuppression":"not_assessed","eligible":null},
+    {"subjectId":"CL30-4d6e5347abe1","purchaseTimestamp":"2026-08-11T20:22:00-04:00","emailPresent":true,"stanTransactionDeliveryEmailStatus":"undelivered_bounce_reason_unknown","globalMailboxDeliverability":"not_determined","duplicateStatus":"unique_within_bounded_six","priorFollowup":"not_assessed","replyStatus":"not_assessed","unsubscribeSuppression":"not_assessed","eligible":null},
+    {"subjectId":"CL30-27fa7c0bdfdc","purchaseTimestamp":"2026-08-10T22:52:00-04:00","emailPresent":true,"stanTransactionDeliveryEmailStatus":"undelivered_bounce_reason_unknown","globalMailboxDeliverability":"not_determined","duplicateStatus":"unique_within_bounded_six","priorFollowup":"not_assessed","replyStatus":"not_assessed","unsubscribeSuppression":"not_assessed","eligible":null},
+    {"subjectId":"CL30-313e6fff8a92","purchaseTimestamp":"2026-08-10T11:04:00-04:00","emailPresent":true,"stanTransactionDeliveryEmailStatus":"undelivered_bounce_reason_unknown","globalMailboxDeliverability":"not_determined","duplicateStatus":"unique_within_bounded_six","priorFollowup":"not_assessed","replyStatus":"not_assessed","unsubscribeSuppression":"not_assessed","eligible":null}
+  ],
+  "measurementDefinitions": {
+    "diagnosticReplyRate": "Unique purchasers with a substantive diagnostic reply / unique purchasers receiving the diagnostic message; exclude delivery failures from the denominator.",
+    "qualifiedSegmentRate": "Unique replying purchasers assigned one approved problem segment / unique substantive diagnostic repliers.",
+    "routedOfferClickRate": "Unique purchasers clicking the single routed approved offer link / unique purchasers sent that routed offer link; require buyer-level tagged-link evidence.",
+    "purchaseRate": "Unique purchasers with transaction-proven pilot-attributable purchase / unique purchasers sent the routed offer link.",
+    "revenue": "Gross USD from transaction-proven pilot-attributable purchases; report refunds separately and do not infer from rolling-window totals.",
+    "complaintRate": "Unique purchasers submitting a complaint / unique purchasers receiving any pilot message.",
+    "unsubscribeRate": "Unique purchasers unsubscribing after pilot contact / unique purchasers receiving any pilot message."
+  },
+  "limitations": [
+    "Exact UI context: the dialog is titled Undelivered Transaction and includes Bounce Reason: Unknown, Send email to, and Resend. This supports a transaction-delivery-email failure interpretation.",
+    "The UI does not label the address itself globally undeliverable and does not establish future outreach-email deliverability.",
+    "Prior-follow-up, reply, unsubscribe, and suppression status were not assessed; cohort eligibility is therefore not determined.",
+    "The audit authorizes no outreach and makes no causal or individual attribution from rolling-window order totals."
+  ],
+  "containsPII": false
+}

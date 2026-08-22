@@ -1,0 +1,125 @@
+{
+  "assignmentId": "ASN-ANA-OPS-001-1787269746152-98037",
+  "parentAssignmentId": "ASN-REV-OPS-001-1787269608824",
+  "sourceResultId": "RES-1787269803016-98161",
+  "verifiedAt": "2026-08-20T23:51:13Z",
+  "pilot": {
+    "name": "Cover Letter buyer diagnostic pilot",
+    "launchWindowUtc": {
+      "firstSent": "2026-08-20T23:48:36Z",
+      "lastSent": "2026-08-20T23:48:42Z"
+    },
+    "maximumBuyers": 6,
+    "maximumMessagesPerBuyer": 2,
+    "durationDays": 7,
+    "day5ReminderRule": "Only verified nonresponders who remain unsuppressed are eligible; Revenue owns any send decision and execution."
+  },
+  "baseline": {
+    "transactionVerifiedBuyersReviewed": 6,
+    "eligibleBuyers": 5,
+    "suppressedForSamePurposeOutreachWithin14Days": 1,
+    "initialDiagnosticEmailsSent": 5,
+    "gmailSentMessagesIndependentlyVerified": 5,
+    "explicitDeliveryFailuresObserved": 0,
+    "humanRepliesObserved": 0,
+    "substantiveDiagnosticReplies": 0,
+    "qualifiedSegmentsAssigned": 0,
+    "initialOfferLinksSent": 0,
+    "routedOfferClicks": 0,
+    "attributedPurchases": 0,
+    "attributedRevenueUsd": 0,
+    "complaints": 0,
+    "unsubscribes": 0,
+    "customerContactsPerformedByAnalytics": 0
+  },
+  "baselineEvidence": [
+    "Revenue result RES-1787269803016-98161 records five newly sent messages and one suppression from six reviewed buyers.",
+    "Independent Gmail Sent search found exactly five messages with the exact pilot subject in the launch window; each carried the SENT label.",
+    "A bounded Gmail search for non-Sent messages with the exact pilot subject returned zero as of verifiedAt.",
+    "SENT status proves submission to Gmail Sent, not recipient inbox placement; delivery-failure count remains an observed-bounce measure."
+  ],
+  "measures": {
+    "explicitDeliveryFailureRate": {
+      "numerator": "Unique pilot recipients with an explicit Gmail bounce or delivery-failure notification",
+      "denominator": "5 initial diagnostic recipients",
+      "baseline": "0/5 (0%)",
+      "limitation": "No failure notification observed is not proof of inbox placement."
+    },
+    "humanReplyRate": {
+      "numerator": "Unique pilot recipients with any verified human reply",
+      "denominator": "5 initial diagnostic recipients",
+      "baseline": "0/5 (0%)"
+    },
+    "substantiveDiagnosticReplyRate": {
+      "numerator": "Unique recipients whose reply identifies a usable job-search breakdown",
+      "denominator": "5 initial diagnostic recipients",
+      "baseline": "0/5 (0%)",
+      "decisionThreshold": "At least 2 substantive replies by Day 7; threshold is directional because n=5."
+    },
+    "qualifiedSegmentRate": {
+      "numerator": "Unique substantive repliers assigned exactly one approved diagnostic segment",
+      "denominator": "Unique substantive diagnostic repliers",
+      "baseline": "0/0 (not calculable)"
+    },
+    "routedOfferClickRate": {
+      "numerator": "Unique routed recipients with a verified tagged-link click",
+      "denominator": "Unique recipients manually sent one approved routed offer",
+      "baseline": "0/0 (not calculable)"
+    },
+    "routedPurchaseRate": {
+      "numerator": "Unique routed recipients with transaction-proven purchase during the pilot window",
+      "denominator": "Unique recipients manually sent one approved routed offer",
+      "baseline": "0/0 (not calculable)"
+    },
+    "attributedRevenueUsd": {
+      "definition": "Gross USD from transaction-proven purchases matched to an approved buyer-level route during the pilot window; refunds reported separately",
+      "baseline": 0
+    },
+    "complaintRate": {
+      "numerator": "Unique recipients making a verified complaint",
+      "denominator": "5 initial diagnostic recipients",
+      "baseline": "0/5 (0%)"
+    },
+    "unsubscribeRate": {
+      "numerator": "Unique recipients with a verified unsubscribe or suppression request after pilot contact",
+      "denominator": "5 initial diagnostic recipients",
+      "baseline": "0/5 (0%)"
+    },
+    "day5ReminderEligibility": {
+      "numerator": "Initial recipients with no human reply, no delivery failure, no complaint, no unsubscribe, and no new suppression at the Day-5 checkpoint",
+      "denominator": "5 initial diagnostic recipients",
+      "baseline": "Not determined before Day 5"
+    }
+  },
+  "checkpoints": [
+    {
+      "name": "T+24h delivery and response check",
+      "at": "2026-08-21T23:48:42Z",
+      "review": ["explicit delivery failures", "human replies", "substantive replies", "complaints", "unsubscribes"]
+    },
+    {
+      "name": "Day-3 interim learning check",
+      "at": "2026-08-23T23:48:42Z",
+      "review": ["reply rate", "substantive reply rate", "qualified segment distribution", "safety outcomes"]
+    },
+    {
+      "name": "Day-5 reminder eligibility check",
+      "at": "2026-08-25T23:48:42Z",
+      "review": ["verified nonresponders", "new suppressions", "delivery failures", "complaints", "unsubscribes"],
+      "actionBoundary": "Analytics measures eligibility only; Revenue owns any authorized reminder."
+    },
+    {
+      "name": "Day-7 final evaluation",
+      "at": "2026-08-27T23:48:42Z",
+      "review": ["all defined rates", "buyer-level routed clicks", "transaction-proven purchases", "revenue", "complaints", "unsubscribes", "learning decision"]
+    }
+  ],
+  "limitations": [
+    "The cohort has five recipients, so percentages are descriptive and highly sensitive to one response.",
+    "Gmail SENT status does not prove inbox placement or reading.",
+    "Clicks, purchases, and revenue are attributable only with buyer-level tagged-link and transaction proof; rolling-window Stan totals are insufficient.",
+    "No causation claim is supported without a control group.",
+    "No customer contact was performed by Analytics."
+  ],
+  "containsPII": false
+}

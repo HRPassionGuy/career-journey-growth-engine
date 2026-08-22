@@ -2,16 +2,17 @@
   "timeZone": "America/Detroit",
   "pollIntervalMs": 60000,
   "dispatch": {
-    "redispatchAfterMs": 300000
+    "redispatchAfterMs": 14400000,
+    "terminalFailureThreshold": 2
   },
   "heartbeat": {
     "intervalMs": 60000,
     "staleAfterMs": 900000
   },
   "retry": {
-    "maxAttempts": 3,
-    "baseDelayMs": 60000,
-    "maxDelayMs": 900000
+    "maxAttempts": 2,
+    "baseDelayMs": 14400000,
+    "maxDelayMs": 14400000
   },
   "integrations": [
     "Gmail",
@@ -31,38 +32,43 @@
   "executiveMonitors": [
     {
       "capabilityId": "REV-OPS-001",
-      "hours": [8, 13, 17],
+      "hours": [8],
       "priority": "high",
       "objective": "Review new Stan purchases, freebie leads, replies, and authorized follow-up opportunities.",
       "requiresExternalAction": false
     },
     {
       "capabilityId": "ANA-OPS-001",
-      "hours": [7, 16],
+      "hours": [7],
       "priority": "normal",
       "objective": "Review current traffic attribution and material conversion changes.",
       "requiresExternalAction": false
     },
     {
       "capabilityId": "RPD-OPS-001",
-      "hours": [6, 14],
+      "hours": [6],
       "priority": "normal",
       "objective": "Review fresh buyer-intent, niche, search, and proposal signals.",
       "requiresExternalAction": false
     },
     {
       "capabilityId": "COM-OPS-001",
-      "hours": [7, 12, 18],
+      "hours": [7],
       "priority": "normal",
-      "objective": "Identify one fresh high-intent conversation suitable for an authorized substantive response.",
-      "requiresExternalAction": false
+      "objective": "Weekday TikTok warm-up: perform no more than 10 fresh, high-fit comments under the Director of Community, using the shared engagement reservation ledger before every action. Do not reuse a post or creator account already reserved or completed by any workflow.",
+      "requiresExternalAction": true
     },
     {
       "capabilityId": "AUT-OPS-001",
-      "hours": [6, 12, 18],
+      "hours": [7, 12, 17],
       "priority": "high",
       "objective": "Check workflow, browser, integration, retry, and stalled-run health.",
       "requiresExternalAction": false
     }
-  ]
+  ],
+  "engagementPolicy": {
+    "timeZone": "America/Detroit",
+    "tiktokDailyMaximum": 10,
+    "uniqueTargetFields": ["platform", "postId", "creatorAccount"]
+  }
 }

@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "auditedAt": "2026-07-25T14:48:00.000Z",
+  "timeZone": "America/Detroit",
+  "authoritativeOwners": {
+    "tiktokWarmup": "community",
+    "highIntentSocialEngagement": "community",
+    "campaignPublishing": "marketing",
+    "shortFormCreative": "creative",
+    "buyerIntentResearch": "research",
+    "stanRevenueFollowup": "vp-revenue",
+    "linkedinServicesProposalSubmission": "external-agents",
+    "linkedinServicesResultIngestion": "vp-revenue",
+    "trafficAndConversionMeasurement": "analytics",
+    "searchPerformanceMonitoring": "analytics",
+    "dispatchRetryAndIntegrationReliability": "automation",
+    "executiveConsolidation": "chief-of-staff"
+  },
+  "engagementControls": {
+    "tiktokWarmupDailyMaximum": 10,
+    "dailyBoundaryTimeZone": "America/Detroit",
+    "uniqueTargetKey": "platform:postId:creatorAccount",
+    "reservationRequiredBeforeAction": true,
+    "completionRequiredAfterVisibleVerification": true
+  },
+  "triggers": [
+    {
+      "id": "google-alerts-sales-content-triage",
+      "name": "Community TikTok 7AM Warm-up",
+      "system": "Codex heartbeat automation",
+      "frequency": "Weekdays at 07:00 America/Detroit",
+      "responsible": "community",
+      "externalActions": ["Up to 10 verified TikTok comments when a matching durable assignment exists"],
+      "overlap": ["config/monitoring.json COM-OPS-001 proactive monitor"],
+      "idempotency": "Assignment idempotency plus engagement reservation ledger",
+      "disposition": "remain_authoritative"
+    },
+    {
+      "id": "config-monitoring-COM-OPS-001",
+      "name": "Community proactive assignment creation",
+      "system": "CJGE daemon/proactive monitor",
+      "frequency": "Weekdays at 07:00 America/Detroit after audit control",
+      "responsible": "chief-of-staff",
+      "externalActions": [],
+      "overlap": ["google-alerts-sales-content-triage"],
+      "idempotency": "proactive:<date>:<hour>:COM-OPS-001",
+      "disposition": "retain_as_assignment_source_only"
+    },
+    {
+      "id": "automation-reliability-monitor",
+      "name": "Automation Reliability Monitor",
+      "system": "Codex heartbeat automation",
+      "frequency": "Hourly",
+      "responsible": "automation",
+      "externalActions": [],
+      "overlap": ["n8n/cjge-dispatch-monitor.json"],
+      "idempotency": "Dispatch throttle and assignment idempotency",
+      "disposition": "remain_authoritative_until_n8n_export_is_verified_active"
+    },
+    {
+      "id": "analytics-proactive-monitor",
+      "name": "Analytics Proactive Monitor",
+      "system": "Codex heartbeat automation",
+      "frequency": "Daily at 07:00 and 16:00 America/Detroit",
+      "responsible": "analytics",
+      "externalActions": [],
+      "overlap": ["config/monitoring.json ANA-OPS-001"],
+      "idempotency": "proactive assignment key",
+      "disposition": "remain_worker; daemon_is_assignment_source"
+    },
+    {
+      "id": "research-proactive-monitor",
+      "name": "Research Proactive Monitor",
+      "system": "Codex heartbeat automation",
+      "frequency": "Daily at 06:00 and 14:00 America/Detroit",
+      "responsible": "research",
+      "externalActions": [],
+      "overlap": ["config/monitoring.json RPD-OPS-001"],
+      "idempotency": "proactive assignment key",
+      "disposition": "remain_worker; daemon_is_assignment_source"
+    },
+    {
+      "id": "vp-revenue-proactive-monitor",
+      "name": "VP Revenue Proactive Monitor",
+      "system": "Codex heartbeat automation",
+      "frequency": "Daily at 08:00, 13:00, and 17:00 America/Detroit",
+      "responsible": "vp-revenue",
+      "externalActions": ["Personalized authorized Stan/Gmail follow-up"],
+      "overlap": ["config/monitoring.json REV-OPS-001"],
+      "idempotency": "Assignment idempotency; recipient/message duplicate checks remain executive evidence requirements",
+      "disposition": "remain_worker; daemon_is_assignment_source"
+    },
+    {
+      "id": "tiktok-opportunity-operator-check",
+      "name": "TikTok opportunity operator check",
+      "system": "Codex heartbeat automation",
+      "frequency": "Monday and Thursday at 09:00",
+      "responsible": "legacy user chat 019f01da-a485-7a90-9a6d-65d73e015df3",
+      "externalActions": ["Research and content-package preparation; prompt does not explicitly authorize publishing or commenting"],
+      "overlap": ["research", "creative", "marketing TikTok responsibilities"],
+      "idempotency": "No shared CJGE action ledger",
+      "disposition": "isolate_as_non_engagement_legacy_until_migrated"
+    },
+    {
+      "id": "n8n-cjge-dispatch-monitor-v1",
+      "name": "CJGE Dispatch, Retry, and Heartbeat Monitor",
+      "system": "n8n export",
+      "frequency": "Every minute, America/Detroit",
+      "responsible": "automation",
+      "externalActions": [],
+      "overlap": ["automation-reliability-monitor"],
+      "idempotency": "CJGE runtime owns assignment and dispatch deduplication",
+      "disposition": "export_inactive; do_not_treat_as_active_without_live_verification"
+    },
+    {
+      "id": "n8n-cjge-integration-health-v1",
+      "name": "CJGE Integration Health",
+      "system": "n8n export",
+      "frequency": "Every 15 minutes, America/Detroit",
+      "responsible": "automation",
+      "externalActions": [],
+      "overlap": ["automation-reliability-monitor"],
+      "idempotency": "Read-only health calls",
+      "disposition": "export_inactive; do_not_treat_as_active_without_live_verification"
+    },
+    {
+      "id": "n8n-cjge-daily-briefing-v1",
+      "name": "CJGE Daily Chief of Staff Briefing",
+      "system": "n8n export",
+      "frequency": "Daily at 06:45 America/Detroit",
+      "responsible": "chief-of-staff",
+      "externalActions": [],
+      "overlap": ["Chief of Staff daily work item"],
+      "idempotency": "Read-only briefing endpoint",
+      "disposition": "export_inactive; do_not_treat_as_active_without_live_verification"
+    },
+    {
+      "id": "legacy-drive-organic-product-sales",
+      "name": "Drive organic product sales",
+      "system": "Original user-created Codex chat",
+      "frequency": "No active schedule discovered",
+      "responsible": "legacy chat 019e2f4b-b7a5-7af1-a780-eeb0c6225cc0",
+      "externalActions": ["Historically authorized broad organic engagement"],
+      "overlap": ["community", "marketing", "revenue", "creative"],
+      "idempotency": "No shared CJGE ledger",
+      "disposition": "replaced_by_executive_organization; no independent execution"
+    },
+    {
+      "id": "legacy-drive-stan-store-sales",
+      "name": "Drive Stan Store sales",
+      "system": "Original user-created Codex chat",
+      "frequency": "No active schedule discovered",
+      "responsible": "legacy chat 019f4988-1ae6-7183-a8ae-60b5d9ae8a76",
+      "externalActions": ["Historically authorized sales and organic traffic work"],
+      "overlap": ["revenue", "marketing", "community"],
+      "idempotency": "No shared CJGE ledger",
+      "disposition": "replaced_by_executive_organization; no independent execution"
+    }
+  ]
+}
