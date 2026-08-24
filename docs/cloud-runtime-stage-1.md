@@ -1,6 +1,6 @@
 # Cloud Runtime Stage 1 Deployment
 
-Stage 1 prepares, but does not activate, CJGE for a controlled Vercel deployment. GitHub remains the source repository and the existing **Career Journey** Supabase project holds the production state document.
+Stage 1 prepares, but does not activate, CJGE for a controlled Vercel deployment. GitHub remains the source repository and the existing **Career Journey** Supabase project holds the production state document. Vercel exposes the six filesystem-routed functions at `/api/health`, `/api/integrations`, `/api/tick`, `/api/monitor`, `/api/briefing`, and `/api/integration-status`; no rewrite may collapse those paths into one route.
 
 ## Vercel environment
 

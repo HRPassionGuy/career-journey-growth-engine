@@ -9,7 +9,27 @@ alter table public.cjge_operating_state enable row level security;
 revoke all on public.cjge_operating_state from anon, authenticated;
 
 insert into public.cjge_operating_state(singleton, state)
-values (true, '{"version":4}'::jsonb)
+values (true, jsonb_build_object(
+  'version', 4,
+  'initializedAt', now(),
+  'lastDailyRun', null,
+  'work', '[]'::jsonb,
+  'assignments', '[]'::jsonb,
+  'executions', '[]'::jsonb,
+  'handoffs', '[]'::jsonb,
+  'results', '[]'::jsonb,
+  'decisions', '[]'::jsonb,
+  'risks', '[]'::jsonb,
+  'metrics', '{}'::jsonb,
+  'reports', '[]'::jsonb,
+  'heartbeats', '{}'::jsonb,
+  'integrationStatus', '{}'::jsonb,
+  'dispatchLog', '[]'::jsonb,
+  'escalations', '[]'::jsonb,
+  'notifications', '[]'::jsonb,
+  'idempotencyKeys', '{}'::jsonb,
+  'engagementLedger', '[]'::jsonb
+))
 on conflict (singleton) do nothing;
 
 create or replace function public.cjge_state_snapshot(
