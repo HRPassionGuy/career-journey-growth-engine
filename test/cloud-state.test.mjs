@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { createSupabaseStateStore } from "../lib/supabase-state-store.mjs";
 import { createCloudWorker } from "../lib/cloud-worker.mjs";
 import { vercelHandler } from "../lib/vercel-api.mjs";
+import { createCodexCloudDispatcher } from "../lib/codex-cloud-dispatcher.mjs";
+import fs from "node:fs";
 
 function mockSupabase() {
   let revision = 0;
@@ -59,6 +61,67 @@ test("cloud worker starts and runs without a local operating-state file", async 
   const worker = createCloudWorker({ store: store(mock) });
   assert.deepEqual(await worker.monitor(), { queued: [], inProgress: [], blocked: [], failed: [], stalled: [], openHandoffs: [] });
   assert.match(await worker.briefing(), /^# Chief of Staff Daily Briefing/);
+});
+
+test("cloud tick delivers the assignment to Codex Cloud before claiming delivery", async () => {
+  const mock = mockSupabase();
+  const adapter = store(mock);
+  await adapter.mutateState((state) => state.assignments.push({
+    id: "ASN-CLOUD-DELIVERY", capabilityId: "REV-OPS-001", owner: "vp-revenue", support: [],
+    objective: "Verify cloud delivery", status: "queued", attempt: 1, createdAt: "2026-08-24T00:00:00.000Z",
+    updatedAt: "2026-08-24T00:00:00.000Z", lastDispatchAt: null, deliveryStatus: "not_dispatched"
+  }));
+  const delivered = [];
+  const worker = createCloudWorker({ store: adapter, deliver: async (record) => {
+    delivered.push(record);
+    return { accepted: true, deliveryId: "codex-delivery-1" };
+  } });
+  const result = await worker.tick(new Date("2026-08-24T00:00:00.000Z"));
+  assert.equal(result.deliveries[0].status, "delivered");
+  assert.equal(delivered[0].assignmentId, "ASN-CLOUD-DELIVERY");
+  assert.match(delivered[0].idempotencyKey, /^dispatch:ASN-CLOUD-DELIVERY:/);
+  const state = await adapter.readState();
+  assert.equal(state.assignments[0].deliveryStatus, "delivered");
+  assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "delivered_to_thread"]);
+});
+
+test("cloud tick records delivery failure instead of treating a dispatch request as delivery", async () => {
+  const mock = mockSupabase();
+  const adapter = store(mock);
+  await adapter.mutateState((state) => state.assignments.push({
+    id: "ASN-CLOUD-FAILURE", capabilityId: "ANA-OPS-001", owner: "analytics", support: [],
+    objective: "Reject cloud delivery", status: "queued", attempt: 1, createdAt: "2026-08-24T00:00:00.000Z",
+    updatedAt: "2026-08-24T00:00:00.000Z", lastDispatchAt: null, deliveryStatus: "not_dispatched"
+  }));
+  const worker = createCloudWorker({ store: adapter, deliver: async () => { throw new Error("gateway unavailable"); } });
+  const result = await worker.tick(new Date("2026-08-24T00:01:00.000Z"));
+  assert.equal(result.deliveries[0].status, "failed");
+  const state = await adapter.readState();
+  assert.equal(state.assignments[0].deliveryStatus, "failed");
+  assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "delivery_failed"]);
+});
+
+test("Codex Cloud dispatcher sends an authenticated idempotent assignment envelope", async () => {
+  let request;
+  const dispatch = createCodexCloudDispatcher({
+    environment: { CODEX_CLOUD_DISPATCH_URL: "https://codex.example/dispatch", CODEX_CLOUD_DISPATCH_TOKEN: "dispatch-secret" },
+    fetchImpl: async (url, options) => {
+      request = { url, options };
+      return new Response(JSON.stringify({ accepted: true, deliveryId: "delivery-123" }), { status: 202 });
+    }
+  });
+  const result = await dispatch({ assignmentId: "ASN-1", executive: "analytics", runtimeThreadId: "thread-1", entryPoint: "./bin/executive analytics", idempotencyKey: "dispatch:ASN-1:1" });
+  assert.equal(result.deliveryId, "delivery-123");
+  assert.equal(request.options.headers.authorization, "Bearer dispatch-secret");
+  assert.equal(request.options.headers["idempotency-key"], "dispatch:ASN-1:1");
+  assert.equal(JSON.parse(request.options.body).threadId, "thread-1");
+});
+
+test("Supabase RPC authorization relies on service-role grants, not auth.role runtime claims", () => {
+  const migration = fs.readFileSync(new URL("../supabase/migrations/202608240001_cjge_state.sql", import.meta.url), "utf8");
+  assert.doesNotMatch(migration, /auth\.role\s*\(/);
+  assert.match(migration, /revoke all on function[\s\S]+from public, anon, authenticated/i);
+  assert.match(migration, /grant execute on function[\s\S]+to service_role/i);
 });
 
 function responseCapture() {

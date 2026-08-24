@@ -44,7 +44,6 @@ as $$
 declare
   current_row public.cjge_operating_state%rowtype;
 begin
-  if auth.role() <> 'service_role' then raise exception 'service_role required'; end if;
   if p_operation = 'read' then
     select * into current_row from public.cjge_operating_state where singleton = true;
     return jsonb_build_object('revision', current_row.revision, 'state', current_row.state);

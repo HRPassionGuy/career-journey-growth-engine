@@ -10,10 +10,14 @@ Set these values in Vercel Production settings; never place their values in Git:
 - `CJGE_WEBHOOK_TOKEN` — a long random bearer token shared only with authorized n8n workflows
 - `SUPABASE_URL` — URL of the existing Career Journey project
 - `SUPABASE_SERVICE_ROLE_KEY` — server-side service role credential
+- `CODEX_CLOUD_DISPATCH_URL` — the authorized delivery gateway that activates the registered Codex Cloud executive thread
+- `CODEX_CLOUD_DISPATCH_TOKEN` — bearer credential for that gateway
 
 Apply `supabase/migrations/202608240001_cjge_state.sql` to the existing project before deployment. It creates one RLS-protected singleton table and one service-role-only compare-and-swap function. Import the current live state through a one-time, reviewed database update; the repository intentionally contains no live state.
 
 n8n must use bounded schedules rather than polling: daily briefing once daily, dispatch/monitor no more frequently than the existing operational schedule, and integration health on a low-frequency schedule. Do not activate production workflows during Stage 1. All API paths require `Authorization: Bearer <CJGE_WEBHOOK_TOKEN>`, including health reads.
+
+Tick delivery is not satisfied by writing `dispatch_requested` to state. After reserving a dispatch atomically, Vercel sends an authenticated, idempotent assignment envelope to `CODEX_CLOUD_DISPATCH_URL`. Only a successful gateway acceptance records `delivered_to_thread`; rejection or timeout records `delivery_failed`. The gateway must activate the supplied registered `threadId` and send the supplied assignment prompt to that Codex Cloud task.
 
 Economy Mode is enabled in `config/monitoring.json`. Each cloud dispatch is counted by operating date, the daily ceiling stops additional dispatch, duplicate minute ticks are idempotently suppressed, retries use the bounded exponential-backoff policy, and a blocked platform-unavailable integration opens the dispatch circuit.
 
