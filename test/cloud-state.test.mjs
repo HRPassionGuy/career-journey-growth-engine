@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createSupabaseStateStore } from "../lib/supabase-state-store.mjs";
 import { createCloudWorker } from "../lib/cloud-worker.mjs";
 import { vercelHandler } from "../lib/vercel-api.mjs";
-import { createCodexCloudDispatcher } from "../lib/codex-cloud-dispatcher.mjs";
+import { createGithubCodexDispatcher } from "../lib/github-codex-dispatcher.mjs";
 import fs from "node:fs";
 
 function mockSupabase() {
@@ -63,7 +63,7 @@ test("cloud worker starts and runs without a local operating-state file", async 
   assert.match(await worker.briefing(), /^# Chief of Staff Daily Briefing/);
 });
 
-test("cloud tick delivers the assignment to Codex Cloud before claiming delivery", async () => {
+test("cloud tick submits the assignment to the GitHub Codex runner without claiming Codex acceptance", async () => {
   const mock = mockSupabase();
   const adapter = store(mock);
   await adapter.mutateState((state) => state.assignments.push({
@@ -77,12 +77,12 @@ test("cloud tick delivers the assignment to Codex Cloud before claiming delivery
     return { accepted: true, deliveryId: "codex-delivery-1" };
   } });
   const result = await worker.tick(new Date("2026-08-24T00:00:00.000Z"));
-  assert.equal(result.deliveries[0].status, "delivered");
+  assert.equal(result.deliveries[0].status, "submitted");
   assert.equal(delivered[0].assignmentId, "ASN-CLOUD-DELIVERY");
   assert.match(delivered[0].idempotencyKey, /^dispatch:ASN-CLOUD-DELIVERY:/);
   const state = await adapter.readState();
-  assert.equal(state.assignments[0].deliveryStatus, "delivered");
-  assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "delivered_to_thread"]);
+  assert.equal(state.assignments[0].deliveryStatus, "submitted");
+  assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "submitted_to_github_runner"]);
 });
 
 test("cloud tick records delivery failure instead of treating a dispatch request as delivery", async () => {
@@ -101,20 +101,34 @@ test("cloud tick records delivery failure instead of treating a dispatch request
   assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "delivery_failed"]);
 });
 
-test("Codex Cloud dispatcher sends an authenticated idempotent assignment envelope", async () => {
+test("GitHub dispatcher invokes the supported executive workflow", async () => {
   let request;
-  const dispatch = createCodexCloudDispatcher({
-    environment: { CODEX_CLOUD_DISPATCH_URL: "https://codex.example/dispatch", CODEX_CLOUD_DISPATCH_TOKEN: "dispatch-secret" },
+  const dispatch = createGithubCodexDispatcher({
+    environment: { CJGE_GITHUB_REPOSITORY: "owner/repository", CJGE_GITHUB_DISPATCH_TOKEN: "dispatch-secret", CJGE_GITHUB_REF: "main" },
     fetchImpl: async (url, options) => {
       request = { url, options };
-      return new Response(JSON.stringify({ accepted: true, deliveryId: "delivery-123" }), { status: 202 });
+      return new Response(null, { status: 204 });
     }
   });
-  const result = await dispatch({ assignmentId: "ASN-1", executive: "analytics", runtimeThreadId: "thread-1", entryPoint: "./bin/executive analytics", idempotencyKey: "dispatch:ASN-1:1" });
-  assert.equal(result.deliveryId, "delivery-123");
+  const result = await dispatch({ assignmentId: "ASN-1", executive: "analytics", entryPoint: "./bin/executive analytics", idempotencyKey: "dispatch:ASN-1:1", dispatchedAt: "2026-08-27T00:00:00Z" });
+  assert.equal(result.status, "submitted_to_github");
   assert.equal(request.options.headers.authorization, "Bearer dispatch-secret");
-  assert.equal(request.options.headers["idempotency-key"], "dispatch:ASN-1:1");
-  assert.equal(JSON.parse(request.options.body).threadId, "thread-1");
+  assert.match(String(request.url), /api\.github\.com\/repos\/owner\/repository\/actions\/workflows/);
+  assert.equal(JSON.parse(request.options.body).inputs.dispatch_key, "dispatch:ASN-1:1");
+});
+
+test("Codex Cloud callback is required before delivery is marked accepted", async () => {
+  const mock = mockSupabase();
+  const adapter = store(mock);
+  await adapter.mutateState((state) => {
+    state.assignments.push({ id: "ASN-CALLBACK", owner: "analytics", deliveryStatus: "submitted" });
+    state.dispatchLog.push({ assignmentId: "ASN-CALLBACK", status: "dispatch_requested", idempotencyKey: "dispatch:ASN-CALLBACK:1", dispatchedAt: "2026-08-27T00:00:00Z" });
+  });
+  const worker = createCloudWorker({ store: adapter });
+  await worker.recordDispatchStatus({ assignmentId: "ASN-CALLBACK", dispatchKey: "dispatch:ASN-CALLBACK:1", status: "accepted", taskEvidence: "Task submitted: task_123" });
+  const state = await adapter.readState();
+  assert.equal(state.assignments[0].deliveryStatus, "delivered");
+  assert.equal(state.dispatchLog.at(-1).status, "delivered_to_codex_cloud");
 });
 
 test("Supabase RPC authorization relies on service-role grants, not auth.role runtime claims", () => {
@@ -139,16 +153,16 @@ test("Vercel handlers enforce authentication and endpoint methods", async () => 
     const fakeWorker = {
       store: { readState: async () => ({ version: 4 }) },
       integrations: async () => [], tick: async () => ({ dispatched: [] }), monitor: async () => ({}),
-      briefing: async () => "briefing", recordIntegrationStatus: async () => ({ recorded: true })
+      briefing: async () => "briefing", recordIntegrationStatus: async () => ({ recorded: true }), recordDispatchStatus: async () => ({ recorded: true })
     };
     const createWorker = () => fakeWorker;
     const unauthorized = responseCapture();
     await vercelHandler("tick", { createWorker })({ method: "POST", headers: {} }, unauthorized);
     assert.equal(unauthorized.statusCode, 401);
 
-    for (const [endpoint, method] of [["health", "GET"], ["integrations", "GET"], ["tick", "POST"], ["monitor", "GET"], ["briefing", "GET"], ["integration-status", "POST"]]) {
+    for (const [endpoint, method] of [["health", "GET"], ["integrations", "GET"], ["tick", "POST"], ["monitor", "GET"], ["briefing", "GET"], ["integration-status", "POST"], ["dispatch-status", "POST"]]) {
       const response = responseCapture();
-      await vercelHandler(endpoint, { createWorker })({ method, headers: { authorization: "Bearer unit-test-token" }, body: endpoint === "integration-status" ? {} : undefined }, response);
+      await vercelHandler(endpoint, { createWorker })({ method, headers: { authorization: "Bearer unit-test-token" }, body: ["integration-status", "dispatch-status"].includes(endpoint) ? {} : undefined }, response);
       assert.equal(response.statusCode, 200, endpoint);
       assert.equal(response.headers["cache-control"], "no-store");
     }

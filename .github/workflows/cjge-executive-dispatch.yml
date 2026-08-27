@@ -1,0 +1,77 @@
+name: CJGE Executive Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      assignment_id:
+        required: true
+        type: string
+      executive:
+        required: true
+        type: string
+      entry_point:
+        required: true
+        type: string
+      dispatch_key:
+        required: true
+        type: string
+      dispatched_at:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cjge-${{ inputs.dispatch_key }}
+  cancel-in-progress: false
+
+jobs:
+  submit-codex-cloud-task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install authenticated Codex CLI
+        env:
+          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
+        run: |
+          npm install --global @openai/codex
+          printenv CODEX_ACCESS_TOKEN | codex login --with-access-token
+          codex login status
+      - name: Submit assignment to Codex Cloud
+        id: submit
+        env:
+          CODEX_CLOUD_ENVIRONMENT_ID: ${{ secrets.CODEX_CLOUD_ENVIRONMENT_ID }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
+          EXECUTIVE: ${{ inputs.executive }}
+          ENTRY_POINT: ${{ inputs.entry_point }}
+        run: |
+          set +e
+          output=$(codex cloud exec --env "$CODEX_CLOUD_ENVIRONMENT_ID" --branch "${GITHUB_REF_NAME}" --attempts 1 "Claim CJGE assignment ${ASSIGNMENT_ID} as ${EXECUTIVE}. Run node ${ENTRY_POINT} claim ${EXECUTIVE} ${ASSIGNMENT_ID}; read every governing file returned in the packet; execute within the charter; then persist the terminal result with node ${ENTRY_POINT} result ${EXECUTIVE} ${ASSIGNMENT_ID} <execution-id> '<result-json>'." 2>&1)
+          exit_code=$?
+          echo "$output"
+          {
+            echo "exit_code=$exit_code"
+            echo "evidence<<CJGE_EOF"
+            echo "$output" | tail -20
+            echo "CJGE_EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Record Codex Cloud acceptance
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_WEBHOOK_TOKEN: ${{ secrets.CJGE_WEBHOOK_TOKEN }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
+          DISPATCH_KEY: ${{ inputs.dispatch_key }}
+          EXIT_CODE: ${{ steps.submit.outputs.exit_code }}
+          TASK_EVIDENCE: ${{ steps.submit.outputs.evidence }}
+        run: |
+          status=accepted
+          error=""
+          if [ "$EXIT_CODE" != "0" ]; then status=failed; error="codex cloud exec exited ${EXIT_CODE}"; fi
+          payload=$(jq -n --arg assignmentId "$ASSIGNMENT_ID" --arg dispatchKey "$DISPATCH_KEY" --arg status "$status" --arg taskEvidence "$TASK_EVIDENCE" --arg error "$error" '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:$error}')
+          curl --fail-with-body --retry 2 --max-time 30 -X POST "${CJGE_BASE_URL}/api/dispatch-status" -H "Authorization: Bearer ${CJGE_WEBHOOK_TOKEN}" -H "Content-Type: application/json" --data "$payload"

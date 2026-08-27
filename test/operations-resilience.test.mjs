@@ -168,9 +168,9 @@ test("dispatch requests are idempotently throttled without claiming executive wo
   assert.equal(state.executions.length, 0);
   assert.equal(log.length, 1);
   assert.equal(assignment.deliveryStatus, "pending");
-  assert.match(assignment.runtimeThreadId, /^[0-9a-f-]+$/);
+  assert.equal(assignment.runtimeThreadId, "CODEX_CLOUD_ENVIRONMENT_ID");
   assert.equal(log[0].status, "dispatch_requested");
-  assert.match(log[0].entryPoint, /^\.\/bin\/executive /);
+  assert.equal(log[0].entryPoint, "./bin/cloud-executive.mjs");
 });
 
 test("dispatch delivery acknowledgements distinguish request from accepted thread delivery", () => {
@@ -300,14 +300,14 @@ test("proactive and handoff assignments carry the registered destination task", 
   run(["proactive", "2026-07-27T11:00:00.000Z"], stateFile);
   let state = JSON.parse(fs.readFileSync(stateFile));
   const community = state.assignments.find((item) => item.owner === "community");
-  assert.match(community.runtimeThreadId, /^[0-9a-f-]+$/);
+  assert.equal(community.runtimeThreadId, "CODEX_CLOUD_ENVIRONMENT_ID");
   assert.equal(community.deliveryStatus, "not_dispatched");
 
   const parent = JSON.parse(run(["delegate", "REV-OPS-001", JSON.stringify({ objective: "parent" })], stateFile));
   const child = JSON.parse(run(["handoff", parent.assignmentId, "vp-revenue", "creative", "CRE-OPS-001", "Create bounded asset"], stateFile));
   state = JSON.parse(fs.readFileSync(stateFile));
   const creative = state.assignments.find((item) => item.id === child.assignmentId);
-  assert.match(creative.runtimeThreadId, /^[0-9a-f-]+$/);
+  assert.equal(creative.runtimeThreadId, "CODEX_CLOUD_ENVIRONMENT_ID");
   assert.equal(creative.deliveryStatus, "not_dispatched");
 });
 
