@@ -8,6 +8,7 @@ Set these values in Vercel Production settings; never place their values in Git:
 
 - `CJGE_STATE_ADAPTER` — exactly `supabase`
 - `CJGE_WEBHOOK_TOKEN` — a long random bearer token shared only with authorized n8n workflows
+- `CJGE_DISPATCH_CALLBACK_TOKEN` — a separate long random token accepted only by `/api/dispatch-status`
 - `SUPABASE_URL` — URL of the existing Career Journey project
 - `SUPABASE_SERVICE_ROLE_KEY` — server-side service role credential
 - `CJGE_GITHUB_REPOSITORY` — `owner/repository` for this authoritative repository
@@ -20,7 +21,7 @@ Set these GitHub Actions repository secrets:
 - `CODEX_ACCESS_TOKEN` — noninteractive Codex authentication accepted by `codex login --with-access-token`
 - `CODEX_CLOUD_ENVIRONMENT_ID` — the existing Codex Cloud environment connected to this repository
 - `CJGE_BASE_URL` — deployed Vercel origin, without a trailing slash
-- `CJGE_WEBHOOK_TOKEN` — the same webhook token configured in Vercel
+- `CJGE_DISPATCH_CALLBACK_TOKEN` — the same dedicated callback token configured in Vercel
 
 Configure the existing Codex Cloud environment with `CJGE_STATE_ADAPTER=supabase`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. These are required by `bin/cloud-executive.mjs` so the task claims and completes the durable Supabase assignment rather than creating local state inside its checkout.
 
@@ -33,6 +34,8 @@ n8n must use bounded schedules rather than polling: daily briefing once daily, d
 CJGE does not assume that a Codex conversation `threadId` is remotely callable and does not require an invented Codex webhook. After reserving a dispatch atomically, Vercel uses GitHub's supported workflow-dispatch API to start `.github/workflows/cjge-executive-dispatch.yml`. That bounded runner installs the official Codex CLI, authenticates noninteractively, and invokes `codex cloud exec --env <ENV_ID> --attempts 1` to create a real Codex Cloud task. See the official [Codex CLI reference](https://developers.openai.com/codex/cli/reference/) and [GitHub workflow dispatch REST API](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event).
 
 GitHub accepting the workflow changes assignment delivery to `submitted`, not `delivered`. Only the authenticated `/api/dispatch-status` callback after `codex cloud exec` succeeds records `delivered_to_codex_cloud`; CLI rejection records a durable failure. This preserves the assignment and executive packet as continuity while replacing the uncallable conversational-thread routing with a Codex Cloud environment and task.
+
+The callback uses `CJGE_DISPATCH_CALLBACK_TOKEN`, which is intentionally different from the n8n operational webhook token. Each cloud claim is idempotent by dispatch key rather than assignment ID alone, so a duplicate delivery cannot create a second execution while a bounded retry attempt can still claim the same assignment after a genuine stall.
 
 Economy Mode is enabled in `config/monitoring.json`. Each cloud dispatch is counted by operating date, the daily ceiling stops additional dispatch, duplicate minute ticks are idempotently suppressed, retries use the bounded exponential-backoff policy, and a blocked platform-unavailable integration opens the dispatch circuit.
 

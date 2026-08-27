@@ -148,7 +148,9 @@ function responseCapture() {
 
 test("Vercel handlers enforce authentication and endpoint methods", async () => {
   const previous = process.env.CJGE_WEBHOOK_TOKEN;
+  const previousCallback = process.env.CJGE_DISPATCH_CALLBACK_TOKEN;
   process.env.CJGE_WEBHOOK_TOKEN = "unit-test-token";
+  process.env.CJGE_DISPATCH_CALLBACK_TOKEN = "unit-test-callback-token";
   try {
     const fakeWorker = {
       store: { readState: async () => ({ version: 4 }) },
@@ -159,10 +161,14 @@ test("Vercel handlers enforce authentication and endpoint methods", async () => 
     const unauthorized = responseCapture();
     await vercelHandler("tick", { createWorker })({ method: "POST", headers: {} }, unauthorized);
     assert.equal(unauthorized.statusCode, 401);
+    const callbackWithOperationalToken = responseCapture();
+    await vercelHandler("dispatch-status", { createWorker })({ method: "POST", headers: { authorization: "Bearer unit-test-token" }, body: {} }, callbackWithOperationalToken);
+    assert.equal(callbackWithOperationalToken.statusCode, 401);
 
     for (const [endpoint, method] of [["health", "GET"], ["integrations", "GET"], ["tick", "POST"], ["monitor", "GET"], ["briefing", "GET"], ["integration-status", "POST"], ["dispatch-status", "POST"]]) {
       const response = responseCapture();
-      await vercelHandler(endpoint, { createWorker })({ method, headers: { authorization: "Bearer unit-test-token" }, body: ["integration-status", "dispatch-status"].includes(endpoint) ? {} : undefined }, response);
+      const token = endpoint === "dispatch-status" ? "unit-test-callback-token" : "unit-test-token";
+      await vercelHandler(endpoint, { createWorker })({ method, headers: { authorization: `Bearer ${token}` }, body: ["integration-status", "dispatch-status"].includes(endpoint) ? {} : undefined }, response);
       assert.equal(response.statusCode, 200, endpoint);
       assert.equal(response.headers["cache-control"], "no-store");
     }
@@ -172,5 +178,7 @@ test("Vercel handlers enforce authentication and endpoint methods", async () => 
   } finally {
     if (previous === undefined) delete process.env.CJGE_WEBHOOK_TOKEN;
     else process.env.CJGE_WEBHOOK_TOKEN = previous;
+    if (previousCallback === undefined) delete process.env.CJGE_DISPATCH_CALLBACK_TOKEN;
+    else process.env.CJGE_DISPATCH_CALLBACK_TOKEN = previousCallback;
   }
 });

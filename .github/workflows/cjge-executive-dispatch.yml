@@ -49,9 +49,10 @@ jobs:
           ASSIGNMENT_ID: ${{ inputs.assignment_id }}
           EXECUTIVE: ${{ inputs.executive }}
           ENTRY_POINT: ${{ inputs.entry_point }}
+          DISPATCH_KEY: ${{ inputs.dispatch_key }}
         run: |
           set +e
-          output=$(codex cloud exec --env "$CODEX_CLOUD_ENVIRONMENT_ID" --branch "${GITHUB_REF_NAME}" --attempts 1 "Claim CJGE assignment ${ASSIGNMENT_ID} as ${EXECUTIVE}. Run node ${ENTRY_POINT} claim ${EXECUTIVE} ${ASSIGNMENT_ID}; read every governing file returned in the packet; execute within the charter; then persist the terminal result with node ${ENTRY_POINT} result ${EXECUTIVE} ${ASSIGNMENT_ID} <execution-id> '<result-json>'." 2>&1)
+          output=$(codex cloud exec --env "$CODEX_CLOUD_ENVIRONMENT_ID" --branch "${GITHUB_REF_NAME}" --attempts 1 "Claim CJGE assignment ${ASSIGNMENT_ID} as ${EXECUTIVE}. Run node ${ENTRY_POINT} claim ${EXECUTIVE} ${ASSIGNMENT_ID} '${DISPATCH_KEY}'; read every governing file returned in the packet; execute within the charter; then persist the terminal result with node ${ENTRY_POINT} result ${EXECUTIVE} ${ASSIGNMENT_ID} <execution-id> '<result-json>'." 2>&1)
           exit_code=$?
           echo "$output"
           {
@@ -64,7 +65,7 @@ jobs:
       - name: Record Codex Cloud acceptance
         env:
           CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
-          CJGE_WEBHOOK_TOKEN: ${{ secrets.CJGE_WEBHOOK_TOKEN }}
+          CJGE_DISPATCH_CALLBACK_TOKEN: ${{ secrets.CJGE_DISPATCH_CALLBACK_TOKEN }}
           ASSIGNMENT_ID: ${{ inputs.assignment_id }}
           DISPATCH_KEY: ${{ inputs.dispatch_key }}
           EXIT_CODE: ${{ steps.submit.outputs.exit_code }}
@@ -74,4 +75,4 @@ jobs:
           error=""
           if [ "$EXIT_CODE" != "0" ]; then status=failed; error="codex cloud exec exited ${EXIT_CODE}"; fi
           payload=$(jq -n --arg assignmentId "$ASSIGNMENT_ID" --arg dispatchKey "$DISPATCH_KEY" --arg status "$status" --arg taskEvidence "$TASK_EVIDENCE" --arg error "$error" '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:$error}')
-          curl --fail-with-body --retry 2 --max-time 30 -X POST "${CJGE_BASE_URL}/api/dispatch-status" -H "Authorization: Bearer ${CJGE_WEBHOOK_TOKEN}" -H "Content-Type: application/json" --data "$payload"
+          curl --fail-with-body --retry 2 --max-time 30 -X POST "${CJGE_BASE_URL}/api/dispatch-status" -H "Authorization: Bearer ${CJGE_DISPATCH_CALLBACK_TOKEN}" -H "Content-Type: application/json" --data "$payload"

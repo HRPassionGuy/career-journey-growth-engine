@@ -4,12 +4,13 @@ import { productionStateStore } from "../lib/supabase-state-store.mjs";
 
 const executives = JSON.parse(fs.readFileSync(new URL("../config/executives.json", import.meta.url), "utf8"));
 const capabilities = JSON.parse(fs.readFileSync(new URL("../config/capabilities.json", import.meta.url), "utf8"));
-const [command, slug, assignmentId, executionId, payloadJson] = process.argv.slice(2);
+const [command, slug, assignmentId, argument4, argument5] = process.argv.slice(2);
 const store = productionStateStore();
 
 if (command === "claim") {
+  const dispatchKey = argument4;
   const executive = executives[slug];
-  if (!executive || !assignmentId) throw new Error("Usage: cloud-executive claim <executive> <assignment-id>");
+  if (!executive || !assignmentId || !dispatchKey?.startsWith(`dispatch:${assignmentId}:`)) throw new Error("Usage: cloud-executive claim <executive> <assignment-id> <dispatch-key>");
   const id = `EXEC-${slug.toUpperCase()}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   const result = await store.mutateState((state) => {
     const assignment = state.assignments.find((item) => item.id === assignmentId);
@@ -25,12 +26,14 @@ if (command === "claim") {
     state.executions.push({ id, assignmentId, executive: slug, status: "running", startedAt, lastHeartbeatAt: startedAt, finishedAt: null, processId: null, runtime: "codex-cloud" });
     state.heartbeats[id] = { executive: slug, executionId: id, status: "running", assignmentId, updatedAt: startedAt, details: "Claimed by Codex Cloud task" };
     return { executionId: id, assignment, capability, governingFiles: ["AGENTS.md", "docs/PROJECT_CONSTITUTION.md", executive.charter, executive.runtime, executive.procedures] };
-  }, { idempotencyKey: `claim:${assignmentId}` });
+  }, { idempotencyKey: `claim:${dispatchKey}` });
   console.log(JSON.stringify(result.value || result, null, 2));
 } else if (command === "result") {
+  const executionId = argument4;
+  const payloadJson = argument5;
   if (!slug || !assignmentId || !executionId || !payloadJson) throw new Error("Usage: cloud-executive result <executive> <assignment-id> <execution-id> '<json>'");
   const payload = JSON.parse(payloadJson);
-  if (!payload.status || !payload.summary) throw new Error("Result requires status and summary");
+  if (!["completed", "retry", "blocked", "failed"].includes(payload.status) || !payload.summary) throw new Error("Result requires a valid status and summary");
   const result = await store.mutateState((state) => {
     const assignment = state.assignments.find((item) => item.id === assignmentId && item.owner === slug);
     const execution = state.executions.find((item) => item.id === executionId && item.assignmentId === assignmentId);
