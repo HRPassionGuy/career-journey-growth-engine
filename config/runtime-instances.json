@@ -1,42 +1,42 @@
 {
   "chief-of-staff": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "vp-revenue": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "marketing": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "creative": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "community": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "analytics": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "research": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   },
   "automation": {
-    "hostId": "github-actions-codex-cloud",
+    "hostId": "github-actions-codex-action",
     "entryPoint": "./bin/cloud-executive.mjs",
-    "environmentVariable": "CODEX_CLOUD_ENVIRONMENT_ID"
+    "executionMechanism": "openai/codex-action@v1"
   }
 }

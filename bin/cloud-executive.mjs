@@ -23,7 +23,7 @@ if (command === "claim") {
     assignment.activeExecutionId = id;
     assignment.deliveryStatus = "delivered";
     assignment.deliveredAt = startedAt;
-    state.executions.push({ id, assignmentId, executive: slug, status: "running", startedAt, lastHeartbeatAt: startedAt, finishedAt: null, processId: null, runtime: "codex-cloud" });
+    state.executions.push({ id, assignmentId, executive: slug, status: "running", startedAt, lastHeartbeatAt: startedAt, finishedAt: null, processId: null, runtime: "github-codex-action", dispatchKey });
     state.heartbeats[id] = { executive: slug, executionId: id, status: "running", assignmentId, updatedAt: startedAt, details: "Claimed by Codex Cloud task" };
     return { executionId: id, assignment, capability, governingFiles: ["AGENTS.md", "docs/PROJECT_CONSTITUTION.md", executive.charter, executive.runtime, executive.procedures] };
   }, { idempotencyKey: `claim:${dispatchKey}` });
@@ -57,6 +57,14 @@ if (command === "claim") {
     return { resultId, assignmentId, executionId, status, requestedStatus };
   }, { idempotencyKey: `result:${executionId}` });
   console.log(JSON.stringify(result.value || result, null, 2));
+} else if (command === "evidence") {
+  const dispatchKey = argument4;
+  if (!executives[slug] || !assignmentId || !dispatchKey?.startsWith(`dispatch:${assignmentId}:`)) throw new Error("Usage: cloud-executive evidence <executive> <assignment-id> <dispatch-key>");
+  const state = await store.readState();
+  const execution = state.executions.find((item) => item.assignmentId === assignmentId && item.executive === slug && item.dispatchKey === dispatchKey);
+  const result = execution && state.results.find((item) => item.executionId === execution.id);
+  if (!execution || !result) throw new Error("Terminal result evidence is not available for this dispatch");
+  console.log(JSON.stringify({ executionId: execution.id, executionStatus: execution.status, result }, null, 2));
 } else {
   throw new Error("Usage: cloud-executive claim|result ...");
 }

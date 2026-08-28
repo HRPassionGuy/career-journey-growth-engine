@@ -83,6 +83,9 @@ test("cloud tick submits the assignment to the GitHub Codex runner without claim
   const state = await adapter.readState();
   assert.equal(state.assignments[0].deliveryStatus, "submitted");
   assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "submitted_to_github_runner"]);
+  const duplicate = await worker.tick(new Date("2026-08-24T00:00:00.000Z"));
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(delivered.length, 1);
 });
 
 test("cloud tick records delivery failure instead of treating a dispatch request as delivery", async () => {
@@ -101,10 +104,10 @@ test("cloud tick records delivery failure instead of treating a dispatch request
   assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "delivery_failed"]);
 });
 
-test("GitHub dispatcher invokes the supported executive workflow", async () => {
+test("GitHub dispatcher invokes the supported executive workflow on the configured deployment ref", async () => {
   let request;
   const dispatch = createGithubCodexDispatcher({
-    environment: { CJGE_GITHUB_REPOSITORY: "owner/repository", CJGE_GITHUB_DISPATCH_TOKEN: "dispatch-secret", CJGE_GITHUB_REF: "main" },
+    environment: { CJGE_GITHUB_REPOSITORY: "owner/repository", CJGE_GITHUB_DISPATCH_TOKEN: "dispatch-secret", CJGE_GITHUB_REF: "release-candidate" },
     fetchImpl: async (url, options) => {
       request = { url, options };
       return new Response(null, { status: 204 });
@@ -114,10 +117,32 @@ test("GitHub dispatcher invokes the supported executive workflow", async () => {
   assert.equal(result.status, "submitted_to_github");
   assert.equal(request.options.headers.authorization, "Bearer dispatch-secret");
   assert.match(String(request.url), /api\.github\.com\/repos\/owner\/repository\/actions\/workflows/);
-  assert.equal(JSON.parse(request.options.body).inputs.dispatch_key, "dispatch:ASN-1:1");
+  const payload = JSON.parse(request.options.body);
+  assert.equal(payload.ref, "release-candidate");
+  assert.equal(payload.inputs.deployment_ref, "release-candidate");
+  assert.equal(payload.inputs.dispatch_key, "dispatch:ASN-1:1");
 });
 
-test("Codex Cloud callback is required before delivery is marked accepted", async () => {
+test("GitHub dispatcher defaults Stage 1 to cloud-migration", async () => {
+  let payload;
+  const dispatch = createGithubCodexDispatcher({
+    environment: { CJGE_GITHUB_REPOSITORY: "owner/repository", CJGE_GITHUB_DISPATCH_TOKEN: "dispatch-secret" },
+    fetchImpl: async (_url, options) => { payload = JSON.parse(options.body); return new Response(null, { status: 204 }); }
+  });
+  await dispatch({ assignmentId: "ASN-DEFAULT", executive: "analytics", entryPoint: "./bin/cloud-executive.mjs", idempotencyKey: "dispatch:ASN-DEFAULT:1", dispatchedAt: "2026-08-28T00:00:00Z" });
+  assert.equal(payload.ref, "cloud-migration");
+  assert.equal(payload.inputs.deployment_ref, "cloud-migration");
+});
+
+test("workflow uses Codex Action and has no manual Codex login or cloud task invocation", () => {
+  const workflow = fs.readFileSync(new URL("../.github/workflows/cjge-executive-dispatch.yml", import.meta.url), "utf8");
+  assert.match(workflow, /uses:\s*openai\/codex-action@v1/);
+  assert.match(workflow, /openai-api-key:\s*\$\{\{ secrets\.OPENAI_API_KEY \}\}/);
+  assert.match(workflow, /ref:\s*\$\{\{ inputs\.deployment_ref \}\}/);
+  assert.doesNotMatch(workflow, /codex login|codex cloud exec|CODEX_ACCESS_TOKEN|CODEX_CLOUD_ENVIRONMENT_ID|npm install --global @openai\/codex/);
+});
+
+test("terminal Codex Action callback remains distinct and persists actual result evidence", async () => {
   const mock = mockSupabase();
   const adapter = store(mock);
   await adapter.mutateState((state) => {
@@ -125,10 +150,12 @@ test("Codex Cloud callback is required before delivery is marked accepted", asyn
     state.dispatchLog.push({ assignmentId: "ASN-CALLBACK", status: "dispatch_requested", idempotencyKey: "dispatch:ASN-CALLBACK:1", dispatchedAt: "2026-08-27T00:00:00Z" });
   });
   const worker = createCloudWorker({ store: adapter });
-  await worker.recordDispatchStatus({ assignmentId: "ASN-CALLBACK", dispatchKey: "dispatch:ASN-CALLBACK:1", status: "accepted", taskEvidence: "Task submitted: task_123" });
+  const evidence = JSON.stringify({ executionId: "EXEC-1", result: { status: "completed", summary: "Verified result", evidence: ["durable-result"] } });
+  await worker.recordDispatchStatus({ assignmentId: "ASN-CALLBACK", dispatchKey: "dispatch:ASN-CALLBACK:1", status: "completed", taskEvidence: evidence });
   const state = await adapter.readState();
   assert.equal(state.assignments[0].deliveryStatus, "delivered");
-  assert.equal(state.dispatchLog.at(-1).status, "delivered_to_codex_cloud");
+  assert.equal(state.dispatchLog.at(-1).status, "codex_action_completed");
+  assert.equal(state.dispatchLog.at(-1).deliveryEvidence, evidence);
 });
 
 test("Supabase RPC authorization relies on service-role grants, not auth.role runtime claims", () => {

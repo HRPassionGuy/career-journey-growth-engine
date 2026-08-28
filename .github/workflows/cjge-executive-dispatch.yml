@@ -3,6 +3,9 @@ name: CJGE Executive Dispatch
 on:
   workflow_dispatch:
     inputs:
+      deployment_ref:
+        required: true
+        type: string
       assignment_id:
         required: true
         type: string
@@ -27,52 +30,67 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  submit-codex-cloud-task:
+  execute-assignment:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out authoritative deployment branch
+        uses: actions/checkout@v4
         with:
-          node-version: 22
-      - name: Install authenticated Codex CLI
+          ref: ${{ inputs.deployment_ref }}
+
+      - name: Execute CJGE assignment with Codex
+        id: codex
+        continue-on-error: true
+        uses: openai/codex-action@v1
         env:
-          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
-        run: |
-          npm install --global @openai/codex
-          printenv CODEX_ACCESS_TOKEN | codex login --with-access-token
-          codex login status
-      - name: Submit assignment to Codex Cloud
-        id: submit
+          CJGE_STATE_ADAPTER: supabase
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Execute Career Journey Growth Engine assignment ${{ inputs.assignment_id }} as the ${{ inputs.executive }} executive.
+            First run: node ${{ inputs.entry_point }} claim ${{ inputs.executive }} ${{ inputs.assignment_id }} '${{ inputs.dispatch_key }}'
+            Read every governing file returned by that claim, including AGENTS.md, the Project Constitution, the executive charter, runtime, and procedures.
+            Perform the assignment within that governance and the existing cost, approval, evidence, and external-action rules.
+            Before finishing, persist the actual terminal result and evidence by running:
+            node ${{ inputs.entry_point }} result ${{ inputs.executive }} ${{ inputs.assignment_id }} <execution-id> '<result-json>'
+            The result JSON must include status, summary, evidence, metrics, verifiedAt, and externalActionAt when a new external action actually occurred.
+
+      - name: Read durable terminal evidence
+        id: evidence
+        if: always()
+        continue-on-error: true
         env:
-          CODEX_CLOUD_ENVIRONMENT_ID: ${{ secrets.CODEX_CLOUD_ENVIRONMENT_ID }}
-          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
-          EXECUTIVE: ${{ inputs.executive }}
+          CJGE_STATE_ADAPTER: supabase
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ENTRY_POINT: ${{ inputs.entry_point }}
+          EXECUTIVE: ${{ inputs.executive }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
           DISPATCH_KEY: ${{ inputs.dispatch_key }}
         run: |
-          set +e
-          output=$(codex cloud exec --env "$CODEX_CLOUD_ENVIRONMENT_ID" --branch "${GITHUB_REF_NAME}" --attempts 1 "Claim CJGE assignment ${ASSIGNMENT_ID} as ${EXECUTIVE}. Run node ${ENTRY_POINT} claim ${EXECUTIVE} ${ASSIGNMENT_ID} '${DISPATCH_KEY}'; read every governing file returned in the packet; execute within the charter; then persist the terminal result with node ${ENTRY_POINT} result ${EXECUTIVE} ${ASSIGNMENT_ID} <execution-id> '<result-json>'." 2>&1)
-          exit_code=$?
-          echo "$output"
+          evidence=$(node "$ENTRY_POINT" evidence "$EXECUTIVE" "$ASSIGNMENT_ID" "$DISPATCH_KEY" 2>&1)
+          delimiter="CJGE_$(date +%s)_${RANDOM}"
           {
-            echo "exit_code=$exit_code"
-            echo "evidence<<CJGE_EOF"
-            echo "$output" | tail -20
-            echo "CJGE_EOF"
+            echo "result<<${delimiter}"
+            echo "$evidence"
+            echo "${delimiter}"
           } >> "$GITHUB_OUTPUT"
-          exit 0
-      - name: Record Codex Cloud acceptance
+
+      - name: Record terminal Codex Action lifecycle
+        if: always()
         env:
           CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
           CJGE_DISPATCH_CALLBACK_TOKEN: ${{ secrets.CJGE_DISPATCH_CALLBACK_TOKEN }}
           ASSIGNMENT_ID: ${{ inputs.assignment_id }}
           DISPATCH_KEY: ${{ inputs.dispatch_key }}
-          EXIT_CODE: ${{ steps.submit.outputs.exit_code }}
-          TASK_EVIDENCE: ${{ steps.submit.outputs.evidence }}
+          CODEX_OUTCOME: ${{ steps.codex.outcome }}
+          RESULT_EVIDENCE: ${{ steps.evidence.outputs.result }}
         run: |
-          status=accepted
+          status=completed
           error=""
-          if [ "$EXIT_CODE" != "0" ]; then status=failed; error="codex cloud exec exited ${EXIT_CODE}"; fi
-          payload=$(jq -n --arg assignmentId "$ASSIGNMENT_ID" --arg dispatchKey "$DISPATCH_KEY" --arg status "$status" --arg taskEvidence "$TASK_EVIDENCE" --arg error "$error" '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:$error}')
+          if [ "$CODEX_OUTCOME" != "success" ]; then status=failed; error="codex-action outcome: ${CODEX_OUTCOME}"; fi
+          payload=$(jq -n --arg assignmentId "$ASSIGNMENT_ID" --arg dispatchKey "$DISPATCH_KEY" --arg status "$status" --arg taskEvidence "$RESULT_EVIDENCE" --arg error "$error" '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:$error}')
           curl --fail-with-body --retry 2 --max-time 30 -X POST "${CJGE_BASE_URL}/api/dispatch-status" -H "Authorization: Bearer ${CJGE_DISPATCH_CALLBACK_TOKEN}" -H "Content-Type: application/json" --data "$payload"

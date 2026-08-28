@@ -29,8 +29,8 @@ test("every governing path exists", () => {
 test("all eight executives have independently invocable registered entry points", () => {
   assert.deepEqual(Object.keys(instances).sort(), Object.keys(executives).sort());
   for (const slug of Object.keys(executives)) {
-    assert.equal(instances[slug].environmentVariable, "CODEX_CLOUD_ENVIRONMENT_ID");
-    assert.equal(instances[slug].hostId, "github-actions-codex-cloud");
+    assert.equal(instances[slug].executionMechanism, "openai/codex-action@v1");
+    assert.equal(instances[slug].hostId, "github-actions-codex-action");
     assert.equal(instances[slug].entryPoint, "./bin/cloud-executive.mjs");
   }
 });
