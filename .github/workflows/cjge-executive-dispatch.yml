@@ -44,9 +44,8 @@ jobs:
         continue-on-error: true
         uses: openai/codex-action@v1
         env:
-          CJGE_STATE_ADAPTER: supabase
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt: |
@@ -56,16 +55,15 @@ jobs:
             Perform the assignment within that governance and the existing cost, approval, evidence, and external-action rules.
             Before finishing, persist the actual terminal result and evidence by running:
             node ${{ inputs.entry_point }} result ${{ inputs.executive }} ${{ inputs.assignment_id }} <execution-id> '<result-json>'
-            The result JSON must include status, summary, evidence, metrics, verifiedAt, and externalActionAt when a new external action actually occurred.
+            The result JSON must include dispatchKey '${{ inputs.dispatch_key }}', status, summary, evidence, metrics, verifiedAt, and externalActionAt when a new external action actually occurred.
 
       - name: Read durable terminal evidence
         id: evidence
         if: always()
         continue-on-error: true
         env:
-          CJGE_STATE_ADAPTER: supabase
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
           ENTRY_POINT: ${{ inputs.entry_point }}
           EXECUTIVE: ${{ inputs.executive }}
           ASSIGNMENT_ID: ${{ inputs.assignment_id }}

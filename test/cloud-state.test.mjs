@@ -140,6 +140,31 @@ test("workflow uses Codex Action and has no manual Codex login or cloud task inv
   assert.match(workflow, /openai-api-key:\s*\$\{\{ secrets\.OPENAI_API_KEY \}\}/);
   assert.match(workflow, /ref:\s*\$\{\{ inputs\.deployment_ref \}\}/);
   assert.doesNotMatch(workflow, /codex login|codex cloud exec|CODEX_ACCESS_TOKEN|CODEX_CLOUD_ENVIRONMENT_ID|npm install --global @openai\/codex/);
+  assert.doesNotMatch(workflow, /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_URL/);
+  assert.match(workflow, /CJGE_RUNNER_TOKEN/);
+});
+
+test("runner lifecycle is dispatch-scoped and Vercel persists the terminal result", async () => {
+  const mock = mockSupabase();
+  const adapter = store(mock);
+  await adapter.mutateState((state) => {
+    state.assignments.push({ id: "ASN-RUNNER", capabilityId: "ANA-OPS-001", owner: "analytics", status: "queued", attempt: 1, requiresExternalAction: false, lastDispatchAt: "2026-08-28T01:00:00Z" });
+    state.dispatchLog.push({ assignmentId: "ASN-RUNNER", executive: "analytics", status: "dispatch_requested", idempotencyKey: "dispatch:ASN-RUNNER:1", dispatchedAt: "2026-08-28T01:00:00Z" });
+  });
+  const worker = createCloudWorker({ store: adapter });
+  await assert.rejects(() => worker.claimRunnerAssignment({ assignmentId: "ASN-RUNNER", executive: "vp-revenue", dispatchKey: "dispatch:ASN-RUNNER:1" }), /scope mismatch/);
+  const claimed = await worker.claimRunnerAssignment({ assignmentId: "ASN-RUNNER", executive: "analytics", dispatchKey: "dispatch:ASN-RUNNER:1" });
+  const executionId = claimed.value.executionId;
+  await worker.recordRunnerResult({
+    assignmentId: "ASN-RUNNER", executive: "analytics", dispatchKey: "dispatch:ASN-RUNNER:1", executionId,
+    result: { status: "completed", summary: "Measured outcome", evidence: ["verified-evidence"], metrics: { verified: 1 }, verifiedAt: "2026-08-28T01:05:00Z" }
+  });
+  const evidence = await worker.runnerEvidence({ assignmentId: "ASN-RUNNER", executive: "analytics", dispatchKey: "dispatch:ASN-RUNNER:1" });
+  assert.equal(evidence.result.summary, "Measured outcome");
+  assert.deepEqual(evidence.result.evidence, ["verified-evidence"]);
+  const state = await adapter.readState();
+  assert.equal(state.assignments[0].status, "completed");
+  assert.equal(state.results[0].summary, "Measured outcome");
 });
 
 test("terminal Codex Action callback remains distinct and persists actual result evidence", async () => {
@@ -176,13 +201,16 @@ function responseCapture() {
 test("Vercel handlers enforce authentication and endpoint methods", async () => {
   const previous = process.env.CJGE_WEBHOOK_TOKEN;
   const previousCallback = process.env.CJGE_DISPATCH_CALLBACK_TOKEN;
+  const previousRunner = process.env.CJGE_RUNNER_TOKEN;
   process.env.CJGE_WEBHOOK_TOKEN = "unit-test-token";
   process.env.CJGE_DISPATCH_CALLBACK_TOKEN = "unit-test-callback-token";
+  process.env.CJGE_RUNNER_TOKEN = "unit-test-runner-token";
   try {
     const fakeWorker = {
       store: { readState: async () => ({ version: 4 }) },
       integrations: async () => [], tick: async () => ({ dispatched: [] }), monitor: async () => ({}),
-      briefing: async () => "briefing", recordIntegrationStatus: async () => ({ recorded: true }), recordDispatchStatus: async () => ({ recorded: true })
+      briefing: async () => "briefing", recordIntegrationStatus: async () => ({ recorded: true }), recordDispatchStatus: async () => ({ recorded: true }),
+      claimRunnerAssignment: async () => ({ claimed: true }), recordRunnerResult: async () => ({ recorded: true }), runnerEvidence: async () => ({ evidence: true })
     };
     const createWorker = () => fakeWorker;
     const unauthorized = responseCapture();
@@ -191,11 +219,14 @@ test("Vercel handlers enforce authentication and endpoint methods", async () => 
     const callbackWithOperationalToken = responseCapture();
     await vercelHandler("dispatch-status", { createWorker })({ method: "POST", headers: { authorization: "Bearer unit-test-token" }, body: {} }, callbackWithOperationalToken);
     assert.equal(callbackWithOperationalToken.statusCode, 401);
+    const runnerWithCallbackToken = responseCapture();
+    await vercelHandler("runner-claim", { createWorker })({ method: "POST", headers: { authorization: "Bearer unit-test-callback-token" }, body: {} }, runnerWithCallbackToken);
+    assert.equal(runnerWithCallbackToken.statusCode, 401);
 
-    for (const [endpoint, method] of [["health", "GET"], ["integrations", "GET"], ["tick", "POST"], ["monitor", "GET"], ["briefing", "GET"], ["integration-status", "POST"], ["dispatch-status", "POST"]]) {
+    for (const [endpoint, method] of [["health", "GET"], ["integrations", "GET"], ["tick", "POST"], ["monitor", "GET"], ["briefing", "GET"], ["integration-status", "POST"], ["dispatch-status", "POST"], ["runner-claim", "POST"], ["runner-result", "POST"], ["runner-evidence", "POST"]]) {
       const response = responseCapture();
-      const token = endpoint === "dispatch-status" ? "unit-test-callback-token" : "unit-test-token";
-      await vercelHandler(endpoint, { createWorker })({ method, headers: { authorization: `Bearer ${token}` }, body: ["integration-status", "dispatch-status"].includes(endpoint) ? {} : undefined }, response);
+      const token = endpoint.startsWith("runner-") ? "unit-test-runner-token" : endpoint === "dispatch-status" ? "unit-test-callback-token" : "unit-test-token";
+      await vercelHandler(endpoint, { createWorker })({ method, headers: { authorization: `Bearer ${token}` }, body: method === "POST" ? {} : undefined }, response);
       assert.equal(response.statusCode, 200, endpoint);
       assert.equal(response.headers["cache-control"], "no-store");
     }
@@ -207,5 +238,7 @@ test("Vercel handlers enforce authentication and endpoint methods", async () => 
     else process.env.CJGE_WEBHOOK_TOKEN = previous;
     if (previousCallback === undefined) delete process.env.CJGE_DISPATCH_CALLBACK_TOKEN;
     else process.env.CJGE_DISPATCH_CALLBACK_TOKEN = previousCallback;
+    if (previousRunner === undefined) delete process.env.CJGE_RUNNER_TOKEN;
+    else process.env.CJGE_RUNNER_TOKEN = previousRunner;
   }
 });
