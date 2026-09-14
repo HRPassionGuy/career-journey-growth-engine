@@ -25,7 +25,7 @@ export default async function handler(request, response) {
 
   try {
     const store = productionStateStore();
-    const proofKey = "stage1-cloud-proof-20260914-v2";
+    const proofKey = "stage1-cloud-proof-20260914-v3";
     const mutation = await store.mutateState((state) => {
       const now = new Date().toISOString();
       const assignmentId = `ASN-STAGE1-PROOF-${Date.now()}`;
