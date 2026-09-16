@@ -29,14 +29,14 @@ test("every governing path exists", () => {
 test("all eight executives have independently invocable registered entry points", () => {
   assert.deepEqual(Object.keys(instances).sort(), Object.keys(executives).sort());
   for (const slug of Object.keys(executives)) {
-    assert.match(instances[slug].threadId, /^[0-9a-f-]+$/);
-    assert.equal(instances[slug].hostId, "local");
-    assert.equal(instances[slug].entryPoint, `./bin/executive ${slug}`);
+    assert.equal(instances[slug].executionMechanism, "openai/codex-action@v1");
+    assert.equal(instances[slug].hostId, "github-actions-codex-action");
+    assert.equal(instances[slug].entryPoint, "./bin/cloud-executive.mjs");
   }
 });
 
 test("workflow records distinguish new external actions from prior verified work", () => {
-  const state = JSON.parse(fs.readFileSync(new URL("../state/operating-state.json", import.meta.url)));
+  const state = JSON.parse(fs.readFileSync(new URL("../state/operating-state.example.json", import.meta.url)));
   for (const report of state.reports) {
     if (report.status === "completed") assert.ok(report.externalActionAt, `${report.id} lacks externalActionAt`);
     if (report.status === "verified_prior_work") assert.equal(report.externalActionAt, null, `${report.id} incorrectly claims a current external action`);
