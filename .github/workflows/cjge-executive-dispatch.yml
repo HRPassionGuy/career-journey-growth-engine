@@ -38,15 +38,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.deployment_ref }}
+          persist-credentials: false
 
-      - name: Prepare isolated Codex user
+      - name: Claim assignment through CJGE control plane
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
+          ENTRY_POINT: ${{ inputs.entry_point }}
+          EXECUTIVE: ${{ inputs.executive }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
+          DISPATCH_KEY: ${{ inputs.dispatch_key }}
         run: |
-          sudo adduser --system --home /home/cjge-codex --shell /bin/bash --group cjge-codex
-          sudo usermod -a -G cjge-codex runner
-          sudo usermod -a -G runner cjge-codex
-          sudo chown -R runner:cjge-codex "$GITHUB_WORKSPACE"
-          sudo chmod -R g+rwX "$GITHUB_WORKSPACE"
-          sudo find "$GITHUB_WORKSPACE" -type d -exec chmod g+s {} +
+          node "$ENTRY_POINT" claim "$EXECUTIVE" "$ASSIGNMENT_ID" "$DISPATCH_KEY" > /tmp/cjge-claim.json
+          cp /tmp/cjge-claim.json "$GITHUB_WORKSPACE/.cjge-claim.json"
 
       - name: Execute CJGE assignment with Codex
         id: codex
@@ -57,16 +61,33 @@ jobs:
           CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          safety-strategy: unprivileged-user
-          codex-user: cjge-codex
+          permission-profile: ":workspace"
+          output-file: .cjge-codex-result.txt
           prompt: |
             Execute Career Journey Growth Engine assignment ${{ inputs.assignment_id }} as the ${{ inputs.executive }} executive.
-            First run: node ${{ inputs.entry_point }} claim ${{ inputs.executive }} ${{ inputs.assignment_id }} '${{ inputs.dispatch_key }}'
-            Read every governing file returned by that claim, including AGENTS.md, the Project Constitution, the executive charter, runtime, and procedures.
+            The assignment has already been claimed securely through the CJGE control plane. Read .cjge-claim.json first.
+            Read every governing file identified by that claim, including AGENTS.md, the Project Constitution, the executive charter, runtime, and procedures.
             Perform the assignment within that governance and the existing cost, approval, evidence, and external-action rules.
-            Before finishing, persist the actual terminal result and evidence by running:
-            node ${{ inputs.entry_point }} result ${{ inputs.executive }} ${{ inputs.assignment_id }} <execution-id> '<result-json>'
-            The result JSON must include dispatchKey '${{ inputs.dispatch_key }}', status, summary, evidence, metrics, verifiedAt, and externalActionAt when a new external action actually occurred.
+            This controlled Stage 1 proof requires no external action. Do not access browsers, social platforms, email, n8n, or other external accounts.
+            Your final response must be concise JSON containing: status, summary, evidence, metrics, verifiedAt, and externalActionAt. Use null for externalActionAt because this proof performs no external action.
+
+      - name: Persist terminal result through CJGE control plane
+        id: persist
+        if: always() && steps.codex.outcome == 'success'
+        continue-on-error: true
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
+          ENTRY_POINT: ${{ inputs.entry_point }}
+          EXECUTIVE: ${{ inputs.executive }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
+          DISPATCH_KEY: ${{ inputs.dispatch_key }}
+        run: |
+          execution_id=$(node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('.cjge-claim.json','utf8'));console.log(x.executionId||x.execution?.id||x.value?.executionId||'')")
+          if [ -z "$execution_id" ]; then echo "Missing execution id from claim" >&2; exit 1; fi
+          raw=$(cat .cjge-codex-result.txt)
+          result_json=$(node -e "const s=process.argv[1]; const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a<0||b<a) process.exit(2); const o=JSON.parse(s.slice(a,b+1)); o.dispatchKey=process.env.DISPATCH_KEY; process.stdout.write(JSON.stringify(o));" "$raw")
+          node "$ENTRY_POINT" result "$EXECUTIVE" "$ASSIGNMENT_ID" "$execution_id" "$result_json"
 
       - name: Read durable terminal evidence
         id: evidence
@@ -96,10 +117,12 @@ jobs:
           ASSIGNMENT_ID: ${{ inputs.assignment_id }}
           DISPATCH_KEY: ${{ inputs.dispatch_key }}
           CODEX_OUTCOME: ${{ steps.codex.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist.outcome }}
           RESULT_EVIDENCE: ${{ steps.evidence.outputs.result }}
         run: |
           status=completed
           error=""
           if [ "$CODEX_OUTCOME" != "success" ]; then status=failed; error="codex-action outcome: ${CODEX_OUTCOME}"; fi
+          if [ "$status" = "completed" ] && [ "$PERSIST_OUTCOME" != "success" ]; then status=failed; error="result persistence outcome: ${PERSIST_OUTCOME}"; fi
           payload=$(jq -n --arg assignmentId "$ASSIGNMENT_ID" --arg dispatchKey "$DISPATCH_KEY" --arg status "$status" --arg taskEvidence "$RESULT_EVIDENCE" --arg error "$error" '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:$error}')
           curl --fail-with-body --retry 2 --max-time 30 -X POST "${CJGE_BASE_URL}/api/dispatch-status" -H "Authorization: Bearer ${CJGE_DISPATCH_CALLBACK_TOKEN}" -H "Content-Type: application/json" --data "$payload"
