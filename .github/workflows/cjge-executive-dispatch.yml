@@ -39,6 +39,15 @@ jobs:
         with:
           ref: ${{ inputs.deployment_ref }}
 
+      - name: Prepare isolated Codex user
+        run: |
+          sudo adduser --system --home /home/cjge-codex --shell /bin/bash --group cjge-codex
+          sudo usermod -a -G cjge-codex runner
+          sudo usermod -a -G runner cjge-codex
+          sudo chown -R runner:cjge-codex "$GITHUB_WORKSPACE"
+          sudo chmod -R g+rwX "$GITHUB_WORKSPACE"
+          sudo find "$GITHUB_WORKSPACE" -type d -exec chmod g+s {} +
+
       - name: Execute CJGE assignment with Codex
         id: codex
         continue-on-error: true
@@ -48,6 +57,8 @@ jobs:
           CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          safety-strategy: unprivileged-user
+          codex-user: cjge-codex
           prompt: |
             Execute Career Journey Growth Engine assignment ${{ inputs.assignment_id }} as the ${{ inputs.executive }} executive.
             First run: node ${{ inputs.entry_point }} claim ${{ inputs.executive }} ${{ inputs.assignment_id }} '${{ inputs.dispatch_key }}'
