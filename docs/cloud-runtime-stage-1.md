@@ -1,6 +1,6 @@
 # Cloud Runtime Stage 1 Deployment
 
-Stage 1 prepares, but does not activate, CJGE for a controlled Vercel deployment. GitHub remains the source repository and the existing **Career Journey** Supabase project holds the production state document. Vercel also exposes runner-only `/api/runner-claim`, `/api/runner-result`, and `/api/runner-evidence` lifecycle routes alongside the authenticated control-plane routes; no rewrite may collapse those paths into one route.
+Stage 1 prepares CJGE for a controlled Vercel deployment. GitHub remains the source repository and the dedicated **Career Journey Growth Engine** Supabase project holds the production state document. Vercel also exposes runner-only `/api/runner-claim`, `/api/runner-result`, and `/api/runner-evidence` lifecycle routes alongside the authenticated control-plane routes; no rewrite may collapse those paths into one route.
 
 ## Vercel environment
 
@@ -10,8 +10,8 @@ Set these values in Vercel Production settings; never place their values in Git:
 - `CJGE_WEBHOOK_TOKEN` — a long random bearer token shared only with authorized n8n workflows
 - `CJGE_DISPATCH_CALLBACK_TOKEN` — a separate long random token accepted only by `/api/dispatch-status`
 - `CJGE_RUNNER_TOKEN` — a distinct random token accepted only by the three runner lifecycle routes
-- `SUPABASE_URL` — URL of the existing Career Journey project
-- `SUPABASE_SERVICE_ROLE_KEY` — server-side service role credential
+- `SUPABASE_URL` — URL of the dedicated Career Journey Growth Engine project
+- `SUPABASE_SERVICE_ROLE_KEY` — server-side service role credential for the dedicated CJGE project
 - `CJGE_GITHUB_REPOSITORY` — `owner/repository` for this authoritative repository
 - `CJGE_GITHUB_DISPATCH_TOKEN` — fine-grained GitHub token permitted to dispatch the CJGE workflow
 - `CJGE_GITHUB_WORKFLOW` — `cjge-executive-dispatch.yml`
@@ -26,7 +26,7 @@ Set these GitHub Actions repository secrets:
 
 The checked-out ref is supplied by the authenticated Vercel workflow dispatch and defaults to `cloud-migration` in code. Protect that branch and require reviewed changes before it is used for deployment.
 
-Apply `supabase/migrations/202608240001_cjge_state.sql` to the existing project before deployment. It creates one RLS-protected singleton table and one service-role-only compare-and-swap function. Import the current live state through a one-time, reviewed database update; the repository intentionally contains no live state.
+Apply `supabase/migrations/202608240001_cjge_state.sql` to the dedicated Career Journey Growth Engine project before deployment. It creates one RLS-protected singleton table and one service-role-only compare-and-swap function. Import the current live state through a one-time, reviewed database update; the repository intentionally contains no live state.
 
 n8n must use bounded schedules rather than polling: daily briefing once daily, dispatch/monitor no more frequently than the existing operational schedule, and integration health on a low-frequency schedule. Do not activate production workflows during Stage 1. Control-plane routes require `CJGE_WEBHOOK_TOKEN`, runner lifecycle routes require `CJGE_RUNNER_TOKEN`, and the terminal dispatch callback requires `CJGE_DISPATCH_CALLBACK_TOKEN`; health reads are also authenticated.
 
