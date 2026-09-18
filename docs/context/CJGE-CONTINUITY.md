@@ -58,7 +58,7 @@ Do not call CJGE cloud-operational until all are verified:
 7. Human-required blockers trigger an independent notification path.
 8. Production executive runtime destinations no longer depend on `hostId: local`.
 9. Automation budgets, retry caps, duplicate suppression, and circuit breaking are active and tested.
-10. Important legacy chat history has been archived or explicitly documented as unavailable.
+10. Important legacy chat history has been archived or explicitly documented as unavailable/recovery-pending.
 
 ## Current repository/cloud status at migration start
 - Private GitHub repository: `HRPassionGuy/career-journey-growth-engine`.
@@ -78,5 +78,24 @@ When accessible, archive the important conversations/source material, especially
 
 Do not assume GitHub contains ChatGPT/Codex conversation history. Repository history and chat history are separate.
 
-## Immediate migration priority
-First establish cloud control-plane execution and persistent state without activating costly or public-action automation. Then connect n8n under hard usage limits. Then perform a Mac-off acceptance test. Browser/social execution is a separate capability and should not block proving the cloud control plane.
+## Migration progress through Stage 2 (verified 2026-09-18)
+- Stage 1 cloud control plane is proven and merged: Vercel control plane, dedicated Supabase durable state, GitHub Actions, and `openai/codex-action@v1` execute without the old Mac.
+- Stage 2 Chief of Staff front door is proven and merged.
+- The complete bounded chain has been proven: CEO request → Chief of Staff → multiple executive delegations → independent Codex executions → durable results → Chief of Staff synthesis → one delivered result.
+- No external action was performed during the controlled proofs.
+- Legacy recovery has begun. `Drive Stan Store Sales` has a verified recovered source/index under `docs/archive/legacy-chats/`.
+- n8n production revenue automation has **not** been blindly reactivated.
+- Browser/social execution parity remains a separate capability and must not be assumed.
+
+## Current operating priority
+The migration is no longer blocked on proving the core cloud execution path. Continue continuity recovery where verified sources exist, but do not let transcript archaeology become the new bottleneck.
+
+The active business mandate is now: **fix what isn't going well.**
+
+Start with a dated, reconciled revenue baseline and identify the highest-confidence constraint in:
+
+qualified traffic → engagement → lead → follow-up → offer → purchase → measurement → improvement
+
+Use VP Revenue as accountable owner, Analytics to validate the evidence, Marketing/Community to diagnose acquisition and objection patterns, and Automation to restore only the bounded workflows justified by the diagnosis. Creative and Research activate only when evidence shows they are needed.
+
+Do not reactivate high-frequency n8n workflows until execution caps, retry/backoff, duplicate suppression, circuit breaking, daily usage accounting, and Economy Mode are verified for those workflows.
