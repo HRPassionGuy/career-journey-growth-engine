@@ -1,4 +1,4 @@
-import { delegateChiefOfStaffWork, chiefOfStaffResponse } from "../lib/chief-of-staff-orchestrator.mjs";
+import { delegateChiefOfStaffWork, chiefOfStaffResponse, dispatchChiefOfStaffSynthesis } from "../lib/chief-of-staff-orchestrator.mjs";
 
 const PARENT = "ASN-COS-1789693385500-624db3af";
 const DELEGATION_ID = "STAGE2-COS-DELEGATION-PROOF-20260917-A1";
@@ -10,6 +10,7 @@ export default async function handler(request,response){
   try{
     const mode=new URL(request.url,"https://cjge.invalid").searchParams.get("mode")||"dispatch";
     if(mode==="status") return send(response,200,{proof:"stage2-cos-delegation",...(await chiefOfStaffResponse({parentAssignmentId:PARENT}))});
+    if(mode==="synthesize") return send(response,202,{proof:"stage2-cos-synthesis",...(await dispatchChiefOfStaffSynthesis({parentAssignmentId:PARENT}))});
     const result=await delegateChiefOfStaffWork({
       parentAssignmentId:PARENT,
       delegationId:DELEGATION_ID,
