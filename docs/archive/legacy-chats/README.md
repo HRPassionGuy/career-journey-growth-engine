@@ -1,13 +1,17 @@
 # Legacy Chat Recovery Status
 
-No original chat transcripts are present in this repository, and none have been fabricated.
+Original chat transcripts were not present in the repository at Stage 1. Recovery is now being performed from verified user-owned historical sources. No missing transcript is to be fabricated.
 
 | Critical source | Status |
 |---|---|
-| Drive Organic Product Sales | Unavailable |
-| Drive Stan Store Sales | Unavailable |
-| Implement AI Executive Organization | Unavailable |
-| Implement Autonomous Operations | Unavailable |
-| Chief of Staff incident/recovery history | Unavailable |
+| Drive Organic Product Sales | Not yet recovered as a distinct source |
+| Drive Stan Store Sales | **Recovered source located; verified extract archived** |
+| Implement AI Executive Organization | Not yet recovered as a distinct source |
+| Implement Autonomous Operations | Not yet recovered as a distinct source |
+| Chief of Staff incident/recovery history | Repository continuity contains verified incident lessons; original dialogue not yet recovered |
 
-Recovered source material should be added here only after provenance and completeness are verified.
+## Provenance rule
+Recovered material must identify its source and whether the repository copy is a full transcript, an extract, or an index. Duplicate exports should not be committed merely to create apparent completeness.
+
+## Recovered artifacts
+- `drive-stan-store-sales-recovered.md` — verified extract/index from the recovered 70,621-line ChatGPT Library export.
