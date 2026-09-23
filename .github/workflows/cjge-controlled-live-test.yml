@@ -1,4 +1,4 @@
-name: CJGE Dispatch Callback Verification
+name: CJGE Chief of Staff Intake Verification
 
 on:
   push:
@@ -9,14 +9,18 @@ permissions:
   contents: read
 
 jobs:
-  verify-callback:
+  verify-intake:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify restored terminal callback route
+      - name: Submit controlled authenticated Chief of Staff request
         env:
           CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
-          CJGE_DISPATCH_CALLBACK_TOKEN: ${{ secrets.CJGE_DISPATCH_CALLBACK_TOKEN }}
+          CJGE_WEBHOOK_TOKEN: ${{ secrets.CJGE_WEBHOOK_TOKEN }}
         run: |
-          payload=$(jq -n             --arg assignmentId "ASN-COS-LIVE-TEST-20260923-001"             --arg dispatchKey "dispatch:ASN-COS-LIVE-TEST-20260923-001:1"             --arg status "completed"             --arg taskEvidence "Controlled live CJGE test completed with durable Chief of Staff synthesis."             '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:""}')
-          curl --fail-with-body --retry 2 --max-time 30             -X POST "${CJGE_BASE_URL}/api/dispatch-status"             -H "Authorization: Bearer ${CJGE_DISPATCH_CALLBACK_TOKEN}"             -H "Content-Type: application/json"             --data "$payload"
+          payload=$(jq -n             --arg requestId "CEO-INTAKE-SMOKE-20260923-001"             --arg request "Controlled intake verification only. Confirm receipt through the Chief of Staff front door. Do not delegate, contact anyone, publish anything, spend money, or perform any external action."             '{requestId:$requestId,request:$request}')
+          response_file=$(mktemp)
+          status=$(curl --silent --show-error --output "$response_file" --write-out "%{http_code}"             --retry 2 --max-time 30             -X POST "${CJGE_BASE_URL}/api/chief-of-staff"             -H "Authorization: Bearer ${CJGE_WEBHOOK_TOKEN}"             -H "Content-Type: application/json"             --data "$payload")
+          jq . "$response_file"
+          test "$status" = "202"
+          jq -e '.assignmentId and .status' "$response_file" >/dev/null
