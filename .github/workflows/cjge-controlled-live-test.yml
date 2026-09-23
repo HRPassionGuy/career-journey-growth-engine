@@ -1,0 +1,111 @@
+name: CJGE Controlled Live Organizational Test
+
+on:
+  push:
+    branches:
+      - controlled-live-test-20260923
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cjge-controlled-live-test-20260923
+  cancel-in-progress: false
+
+jobs:
+  execute-controlled-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out controlled test branch
+        uses: actions/checkout@v4
+        with:
+          ref: controlled-live-test-20260923
+          persist-credentials: false
+
+      - name: Claim Chief of Staff test assignment
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
+          ENTRY_POINT: ./bin/cloud-executive.mjs
+          EXECUTIVE: chief-of-staff
+          ASSIGNMENT_ID: ASN-COS-LIVE-TEST-20260923-001
+          DISPATCH_KEY: dispatch:ASN-COS-LIVE-TEST-20260923-001:1
+        run: |
+          node "$ENTRY_POINT" claim "$EXECUTIVE" "$ASSIGNMENT_ID" "$DISPATCH_KEY" > /tmp/cjge-claim.json
+          cp /tmp/cjge-claim.json "$GITHUB_WORKSPACE/.cjge-claim.json"
+
+      - name: Execute controlled Chief of Staff assignment with Codex
+        id: codex
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          output-file: .cjge-codex-result.txt
+          prompt: |
+            Execute Career Journey Growth Engine assignment ASN-COS-LIVE-TEST-20260923-001 as the Chief of Staff.
+            Read .cjge-claim.json first, then every governing file identified by that claim.
+            This is an internal-only organizational test. Do not access browsers, social platforms, email, n8n, external accounts, publish, message, spend, or perform any external action.
+            Follow the CEO objective in the claim and delegate exactly two bounded internal assignments: one to vp-revenue and one to analytics.
+            Return concise JSON containing status, summary, evidence, metrics, verifiedAt, externalActionAt, and delegations.
+            Each delegation must contain executive and objective. Use null for externalActionAt.
+
+      - name: Persist Chief of Staff result
+        id: persist
+        if: always() && steps.codex.outcome == 'success'
+        continue-on-error: true
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
+          ENTRY_POINT: ./bin/cloud-executive.mjs
+          EXECUTIVE: chief-of-staff
+          ASSIGNMENT_ID: ASN-COS-LIVE-TEST-20260923-001
+          DISPATCH_KEY: dispatch:ASN-COS-LIVE-TEST-20260923-001:1
+        run: |
+          execution_id=$(node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('.cjge-claim.json','utf8'));console.log(x.executionId||x.execution?.id||x.value?.executionId||'')")
+          if [ -z "$execution_id" ]; then echo "Missing execution id from claim" >&2; exit 1; fi
+          raw=$(cat .cjge-codex-result.txt)
+          result_json=$(node -e "const s=process.argv[1]; const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a<0||b<a) process.exit(2); const o=JSON.parse(s.slice(a,b+1)); o.dispatchKey=process.env.DISPATCH_KEY; process.stdout.write(JSON.stringify(o));" "$raw")
+          node "$ENTRY_POINT" result "$EXECUTIVE" "$ASSIGNMENT_ID" "$execution_id" "$result_json"
+
+      - name: Read durable terminal evidence
+        id: evidence
+        if: always()
+        continue-on-error: true
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_RUNNER_TOKEN: ${{ secrets.CJGE_RUNNER_TOKEN }}
+          ENTRY_POINT: ./bin/cloud-executive.mjs
+          EXECUTIVE: chief-of-staff
+          ASSIGNMENT_ID: ASN-COS-LIVE-TEST-20260923-001
+          DISPATCH_KEY: dispatch:ASN-COS-LIVE-TEST-20260923-001:1
+        run: |
+          evidence=$(node "$ENTRY_POINT" evidence "$EXECUTIVE" "$ASSIGNMENT_ID" "$DISPATCH_KEY" 2>&1)
+          delimiter="CJGE_$(date +%s)_${RANDOM}"
+          {
+            echo "result<<${delimiter}"
+            echo "$evidence"
+            echo "${delimiter}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Record terminal lifecycle
+        if: always()
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_DISPATCH_CALLBACK_TOKEN: ${{ secrets.CJGE_DISPATCH_CALLBACK_TOKEN }}
+          ASSIGNMENT_ID: ASN-COS-LIVE-TEST-20260923-001
+          DISPATCH_KEY: dispatch:ASN-COS-LIVE-TEST-20260923-001:1
+          CODEX_OUTCOME: ${{ steps.codex.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist.outcome }}
+          RESULT_EVIDENCE: ${{ steps.evidence.outputs.result }}
+        run: |
+          status=completed
+          error=""
+          if [ "$CODEX_OUTCOME" != "success" ]; then status=failed; error="codex-action outcome: ${CODEX_OUTCOME}"; fi
+          if [ "$status" = "completed" ] && [ "$PERSIST_OUTCOME" != "success" ]; then status=failed; error="result persistence outcome: ${PERSIST_OUTCOME}"; fi
+          payload=$(jq -n --arg assignmentId "$ASSIGNMENT_ID" --arg dispatchKey "$DISPATCH_KEY" --arg status "$status" --arg taskEvidence "$RESULT_EVIDENCE" --arg error "$error" '{assignmentId:$assignmentId,dispatchKey:$dispatchKey,status:$status,taskEvidence:$taskEvidence,error:$error}')
+          curl --fail-with-body --retry 2 --max-time 30 -X POST "${CJGE_BASE_URL}/api/dispatch-status" -H "Authorization: Bearer ${CJGE_DISPATCH_CALLBACK_TOKEN}" -H "Content-Type: application/json" --data "$payload"
