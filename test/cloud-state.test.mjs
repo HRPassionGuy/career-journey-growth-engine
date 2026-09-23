@@ -4,6 +4,8 @@ import { createSupabaseStateStore } from "../lib/supabase-state-store.mjs";
 import { createCloudWorker } from "../lib/cloud-worker.mjs";
 import { vercelHandler } from "../lib/vercel-api.mjs";
 import { createGithubCodexDispatcher } from "../lib/github-codex-dispatcher.mjs";
+import { submitChiefOfStaffRequest } from "../lib/chief-of-staff-intake.mjs";
+import { chiefOfStaffResponse } from "../lib/chief-of-staff-orchestrator.mjs";
 import fs from "node:fs";
 
 function mockSupabase() {
@@ -165,6 +167,58 @@ test("runner lifecycle is dispatch-scoped and Vercel persists the terminal resul
   const state = await adapter.readState();
   assert.equal(state.assignments[0].status, "completed");
   assert.equal(state.results[0].summary, "Measured outcome");
+});
+
+test("CEO request advances through Chief of Staff, independent executives, and synthesis once", async () => {
+  const mock = mockSupabase();
+  const adapter = store(mock);
+  const dispatched = [];
+  const deliver = async (record) => {
+    dispatched.push(record);
+    return { status: "submitted_to_github", deliveryId: record.idempotencyKey };
+  };
+  const intake = await submitChiefOfStaffRequest({ requestId: "CEO-REVENUE-DIAGNOSTIC", request: "Diagnose the revenue funnel using verified internal evidence." }, { store: adapter, deliver });
+  const worker = createCloudWorker({ store: adapter, deliver });
+
+  async function complete(assignmentId, executive, result) {
+    const state = await adapter.readState();
+    const dispatch = state.dispatchLog.find((item) => item.assignmentId === assignmentId && item.status === "dispatch_requested");
+    const scope = { assignmentId, executive, dispatchKey: dispatch.idempotencyKey };
+    const claimed = await worker.claimRunnerAssignment(scope);
+    const payload = { ...scope, executionId: claimed.value.executionId, result: { status: "completed", summary: "Verified internal finding", evidence: ["local evidence"], metrics: {}, ...result } };
+    const recorded = await worker.recordRunnerResult(payload);
+    return { recorded, payload };
+  }
+
+  const parent = await complete(intake.assignmentId, "chief-of-staff", { delegations: [
+    { executive: "vp-revenue", objective: "Identify the highest priority funnel questions from internal evidence." },
+    { executive: "analytics", objective: "Identify the minimum verified funnel metrics from internal evidence." }
+  ] });
+  assert.equal(dispatched.length, 3);
+  await worker.recordRunnerResult(parent.payload);
+  assert.equal(dispatched.length, 3, "duplicate result cannot dispatch children twice");
+
+  let state = await adapter.readState();
+  const children = state.assignments.filter((item) => item.parentAssignmentId === intake.assignmentId);
+  assert.equal(children.length, 2);
+  assert.equal(state.handoffs.filter((item) => item.status === "open").length, 2);
+
+  await complete(children[0].id, children[0].owner);
+  assert.equal(dispatched.length, 3, "first child cannot synthesize before the second result");
+  const second = await complete(children[1].id, children[1].owner);
+  assert.equal(dispatched.length, 4, "second child dispatches Chief of Staff synthesis");
+  await worker.recordRunnerResult(second.payload);
+  assert.equal(dispatched.length, 4, "duplicate child callback cannot dispatch synthesis twice");
+  state = await adapter.readState();
+  assert.equal(state.handoffs.filter((item) => item.status === "resolved").length, 2);
+
+  const synthesis = state.assignments.find((item) => item.synthesisOf);
+  await complete(synthesis.id, "chief-of-staff", { summary: "CEO synthesis: evidence gaps and bounded next step." });
+  const response = await chiefOfStaffResponse({ parentAssignmentId: intake.assignmentId }, { store: adapter });
+  assert.equal(response.childCount, 2);
+  assert.equal(response.synthesis.result.summary, "CEO synthesis: evidence gaps and bounded next step.");
+  assert.equal(response.ready, true);
+  assert.equal(dispatched.length, 4);
 });
 
 test("terminal Codex Action callback remains distinct and persists actual result evidence", async () => {
