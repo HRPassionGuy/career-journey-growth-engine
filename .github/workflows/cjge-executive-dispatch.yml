@@ -68,8 +68,9 @@ jobs:
             The assignment has already been claimed securely through the CJGE control plane. Read .cjge-claim.json first.
             Read every governing file identified by that claim, including AGENTS.md, the Project Constitution, the executive charter, runtime, and procedures.
             Perform the assignment within that governance and the existing cost, approval, evidence, and external-action rules.
-            This controlled Stage 1 proof requires no external action. Do not access browsers, social platforms, email, n8n, or other external accounts.
-            Your final response must be concise JSON containing: status, summary, evidence, metrics, verifiedAt, and externalActionAt. Use null for externalActionAt because this proof performs no external action.
+            Current Chief of Staff diagnostic assignments are internal-only. Do not access browsers, social platforms, email, n8n, or other external accounts for these assignments.
+            Your final response must be concise JSON containing: status, summary, evidence, metrics, verifiedAt, and externalActionAt. Use null for externalActionAt when no external action occurs.
+            For an original CEO Chief of Staff request only, include delegations when independent executive input is needed. Each delegation must specify executive and a bounded internal-only objective; use no more than two executives. Omit delegations for a synthesis assignment and for any executive other than Chief of Staff.
 
       - name: Persist terminal result through CJGE control plane
         id: persist
