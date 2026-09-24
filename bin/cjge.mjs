@@ -188,7 +188,7 @@ if (command === "init") {
       ,
       attempt: 1,
       lastDispatchAt: null,
-      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[capability.owner]?.threadId || null,
+      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[capability.owner]?.executionMechanism || null,
       deliveryStatus: "not_dispatched"
     });
   });
@@ -232,7 +232,7 @@ if (command === "init") {
       activeExecutionId: null,
       attempt: 1,
       lastDispatchAt: null,
-      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[to]?.threadId || null,
+      runtimeThreadId: JSON.parse(fs.readFileSync(path.join(root, "config/runtime-instances.json"), "utf8"))[to]?.executionMechanism || null,
       deliveryStatus: "not_dispatched"
     });
   });

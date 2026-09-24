@@ -1,6 +1,11 @@
 {
   "timeZone": "America/Detroit",
   "pollIntervalMs": 60000,
+  "costControls": {
+    "economyMode": true,
+    "dailyExecutionMaximum": 50,
+    "circuitBreakerFailureThreshold": 2
+  },
   "dispatch": {
     "redispatchAfterMs": 14400000,
     "terminalFailureThreshold": 2
@@ -10,7 +15,7 @@
     "staleAfterMs": 900000
   },
   "retry": {
-    "maxAttempts": 2,
+    "maxAttempts": 3,
     "baseDelayMs": 14400000,
     "maxDelayMs": 14400000
   },

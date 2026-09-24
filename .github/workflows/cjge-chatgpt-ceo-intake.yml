@@ -1,0 +1,37 @@
+name: CJGE ChatGPT CEO Intake Relay
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  relay:
+    if: github.actor == 'HRPassionGuy' && startsWith(github.event.issue.title, '[CJGE CEO]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Submit CEO request to Chief of Staff
+        env:
+          CJGE_BASE_URL: ${{ secrets.CJGE_BASE_URL }}
+          CJGE_WEBHOOK_TOKEN: ${{ secrets.CJGE_WEBHOOK_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          test -n "${CJGE_BASE_URL}"
+          test -n "${CJGE_WEBHOOK_TOKEN}"
+          test -n "${ISSUE_BODY}"
+          payload=$(jq -n --arg request "${ISSUE_BODY}" --arg requestId "CHATGPT-GH-${ISSUE_NUMBER}" '{request:$request, requestId:$requestId, priority:"normal"}')
+          response_file=$(mktemp)
+          status=$(curl --silent --show-error --output "$response_file" --write-out "%{http_code}" \
+            --retry 2 --max-time 30 \
+            -X POST "${CJGE_BASE_URL}/api/chief-of-staff" \
+            -H "Authorization: Bearer ${CJGE_WEBHOOK_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "$payload")
+          jq . "$response_file"
+          test "$status" = "202"
