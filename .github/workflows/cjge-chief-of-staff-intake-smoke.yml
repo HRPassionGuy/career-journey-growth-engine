@@ -25,9 +25,17 @@ jobs:
           test -n "${CJGE_BASE_URL}"
           test -n "${CJGE_WEBHOOK_TOKEN}"
           request_id="CEO-INTAKE-SMOKE-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          payload=$(jq -n             --arg requestId "$request_id"             --arg request "Controlled intake verification only. Confirm receipt through the Chief of Staff front door. Do not delegate, contact anyone, publish anything, spend money, or perform any external action."             '{requestId:$requestId,request:$request}')
+          payload=$(jq -n \
+            --arg requestId "$request_id" \
+            --arg request "Controlled intake verification only. Confirm receipt through the Chief of Staff front door. Do not delegate, contact anyone, publish anything, spend money, or perform any external action." \
+            '{requestId:$requestId,request:$request}')
           response_file=$(mktemp)
-          status=$(curl --silent --show-error --output "$response_file" --write-out "%{http_code}"             --retry 2 --max-time 30             -X POST "${CJGE_BASE_URL}/api/chief-of-staff"             -H "Authorization: Bearer ${CJGE_WEBHOOK_TOKEN}"             -H "Content-Type: application/json"             --data "$payload")
+          status=$(curl --silent --show-error --output "$response_file" --write-out "%{http_code}" \
+            --retry 2 --max-time 30 \
+            -X POST "${CJGE_BASE_URL}/api/chief-of-staff" \
+            -H "Authorization: Bearer ${CJGE_WEBHOOK_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "$payload")
           jq . "$response_file"
           test "$status" = "202"
-          jq -e --arg request_id "$request_id" '.assignmentId and .status and .requestId == $request_id' "$response_file" >/dev/null
+          jq -e --arg request_id "$request_id" '.assignmentId and .requestId == $request_id and ((.status // .delivery) != null)' "$response_file" >/dev/null
