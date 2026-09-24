@@ -1,4 +1,5 @@
 name: CJGE Chief of Staff Intake Smoke Test
+# Token-rotation verification trigger; no runtime behavior change.
 
 on:
   workflow_dispatch:
