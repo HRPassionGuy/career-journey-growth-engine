@@ -54,6 +54,7 @@ jobs:
 
       - name: Execute CJGE assignment with Codex
         id: codex
+        if: ${{ vars.CJGE_API_EXECUTION_ENABLED == 'true' }}
         continue-on-error: true
         uses: openai/codex-action@v1
         env:
