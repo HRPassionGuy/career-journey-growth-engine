@@ -3,7 +3,7 @@
   "pollIntervalMs": 60000,
   "costControls": {
     "economyMode": true,
-    "dailyExecutionMaximum": 8,
+    "dailyExecutionMaximum": 0,
     "circuitBreakerFailureThreshold": 2
   },
   "dispatch": {
