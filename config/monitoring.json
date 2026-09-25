@@ -3,7 +3,7 @@
   "pollIntervalMs": 60000,
   "costControls": {
     "economyMode": true,
-    "dailyExecutionMaximum": 50,
+    "dailyExecutionMaximum": 8,
     "circuitBreakerFailureThreshold": 2
   },
   "dispatch": {
@@ -15,7 +15,7 @@
     "staleAfterMs": 900000
   },
   "retry": {
-    "maxAttempts": 3,
+    "maxAttempts": 2,
     "baseDelayMs": 14400000,
     "maxDelayMs": 14400000
   },
