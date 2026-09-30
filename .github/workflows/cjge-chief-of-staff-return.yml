@@ -2,7 +2,7 @@ name: CJGE Chief of Staff Return Channel
 
 on:
   push:
-    branches: [cloud-migration]
+    branches: [cloud-migration, codex-cloud-migration]
     paths:
       - deliverables/chief-of-staff/return-channel/*.json
   workflow_dispatch:
