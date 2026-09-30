@@ -25,7 +25,12 @@ jobs:
           test -n "${CJGE_BASE_URL}"
           test -n "${CJGE_WEBHOOK_TOKEN}"
           test -n "${ISSUE_BODY}"
-          payload=$(jq -n --arg request "${ISSUE_BODY}" --arg requestId "CHATGPT-GH-${ISSUE_NUMBER}" '{request:$request, requestId:$requestId, priority:"normal"}')
+          payload=$(jq -n \
+            --arg request "${ISSUE_BODY}" \
+            --arg requestId "CHATGPT-GH-${ISSUE_NUMBER}" \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --argjson issueNumber "${ISSUE_NUMBER}" \
+            '{request:$request, requestId:$requestId, priority:"normal", returnChannel:{type:"github_issue",repository:$repository,issueNumber:$issueNumber}}')
           response_file=$(mktemp)
           status=$(curl --silent --show-error --output "$response_file" --write-out "%{http_code}" \
             --retry 2 --max-time 30 \
