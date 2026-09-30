@@ -1,0 +1,63 @@
+name: CJGE Chief of Staff Return Channel
+
+on:
+  push:
+    branches: [cloud-migration]
+    paths:
+      - deliverables/chief-of-staff/return-channel/*.json
+  workflow_dispatch:
+    inputs:
+      record_path:
+        description: Repository-relative path to one return-channel JSON record
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: cjge-chief-of-staff-return-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out committed synthesis and return record
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Select committed return records
+        id: records
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          RECORD_PATH: ${{ inputs.record_path }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            printf '%s\n' "$RECORD_PATH" > /tmp/cjge-return-records
+          elif [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            git ls-tree -r --name-only "$GITHUB_SHA" -- 'deliverables/chief-of-staff/return-channel/*.json' > /tmp/cjge-return-records
+          else
+            git diff --diff-filter=ACMR --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- 'deliverables/chief-of-staff/return-channel/*.json' > /tmp/cjge-return-records
+          fi
+          test -s /tmp/cjge-return-records
+          while IFS= read -r record; do
+            case "$record" in
+              deliverables/chief-of-staff/return-channel/*.json) test -f "$record" ;;
+              *) echo "Unsafe return record path: $record" >&2; exit 1 ;;
+            esac
+          done < /tmp/cjge-return-records
+
+      - name: Comment on originating CEO issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t records < /tmp/cjge-return-records
+          node ./bin/github-issue-return.mjs "$GITHUB_SHA" "${records[@]}"

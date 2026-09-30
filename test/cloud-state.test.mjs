@@ -177,7 +177,11 @@ test("CEO request advances through Chief of Staff, independent executives, and s
     dispatched.push(record);
     return { status: "submitted_to_github", deliveryId: record.idempotencyKey };
   };
-  const intake = await submitChiefOfStaffRequest({ requestId: "CEO-REVENUE-DIAGNOSTIC", request: "Diagnose the revenue funnel using verified internal evidence." }, { store: adapter, deliver });
+  const intake = await submitChiefOfStaffRequest({
+    requestId: "CHATGPT-GH-42",
+    request: "Diagnose the revenue funnel using verified internal evidence.",
+    returnChannel: { type: "github_issue", repository: "HRPassionGuy/career-journey-growth-engine", issueNumber: 42 }
+  }, { store: adapter, deliver });
   const worker = createCloudWorker({ store: adapter, deliver });
 
   async function complete(assignmentId, executive, result) {
@@ -199,6 +203,9 @@ test("CEO request advances through Chief of Staff, independent executives, and s
   assert.equal(dispatched.length, 3, "duplicate result cannot dispatch children twice");
 
   let state = await adapter.readState();
+  const original = state.assignments.find((item) => item.id === intake.assignmentId);
+  assert.equal(original.requestId, "CHATGPT-GH-42");
+  assert.deepEqual(original.returnChannel, { type: "github_issue", repository: "HRPassionGuy/career-journey-growth-engine", issueNumber: 42 });
   const children = state.assignments.filter((item) => item.parentAssignmentId === intake.assignmentId);
   assert.equal(children.length, 2);
   assert.equal(state.handoffs.filter((item) => item.status === "open").length, 2);
