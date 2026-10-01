@@ -234,7 +234,7 @@ test("stalled execution retries are bounded and every stall is classified", () =
   run(["init"], stateFile);
   const delegated = JSON.parse(run(["delegate", "COM-OPS-001", JSON.stringify({ objective: "bounded retry" })], stateFile));
   const executive = path.join(root, "bin", "executive.mjs");
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
     const invocation = spawnSync(node, [executive, "community", delegated.assignmentId], {
       cwd: root, env: { ...process.env, CJGE_STATE_FILE: stateFile }, encoding: "utf8"
     });
@@ -250,8 +250,8 @@ test("stalled execution retries are bounded and every stall is classified", () =
   const state = JSON.parse(fs.readFileSync(stateFile));
   const assignment = state.assignments.find((item) => item.id === delegated.assignmentId);
   assert.equal(assignment.status, "blocked");
-  assert.equal(assignment.attempt, 3);
-  assert.equal(state.executions.filter((item) => item.status === "stalled").length, 3);
+  assert.equal(assignment.attempt, 2);
+  assert.equal(state.executions.filter((item) => item.status === "stalled").length, 2);
   assert.ok(state.executions.every((item) => item.failureClassification));
   assert.ok(state.executions.every((item) => state.heartbeats[item.id].status === "stalled"));
 });

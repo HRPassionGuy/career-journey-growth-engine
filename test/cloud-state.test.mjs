@@ -65,7 +65,7 @@ test("cloud worker starts and runs without a local operating-state file", async 
   assert.match(await worker.briefing(), /^# Chief of Staff Daily Briefing/);
 });
 
-test("cloud tick submits the assignment to the GitHub Codex runner without claiming Codex acceptance", async () => {
+test("cloud tick preserves queued work while the paid execution ceiling is zero", async () => {
   const mock = mockSupabase();
   const adapter = store(mock);
   await adapter.mutateState((state) => state.assignments.push({
@@ -79,18 +79,19 @@ test("cloud tick submits the assignment to the GitHub Codex runner without claim
     return { accepted: true, deliveryId: "codex-delivery-1" };
   } });
   const result = await worker.tick(new Date("2026-08-24T00:00:00.000Z"));
-  assert.equal(result.deliveries[0].status, "submitted");
-  assert.equal(delivered[0].assignmentId, "ASN-CLOUD-DELIVERY");
-  assert.match(delivered[0].idempotencyKey, /^dispatch:ASN-CLOUD-DELIVERY:/);
+  assert.deepEqual(result.deliveries, []);
+  assert.equal(result.dailyDispatches, 0);
+  assert.equal(delivered.length, 0);
   const state = await adapter.readState();
-  assert.equal(state.assignments[0].deliveryStatus, "submitted");
-  assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "submitted_to_github_runner"]);
+  assert.equal(state.assignments[0].status, "queued");
+  assert.equal(state.assignments[0].deliveryStatus, "not_dispatched");
+  assert.deepEqual(state.dispatchLog, []);
   const duplicate = await worker.tick(new Date("2026-08-24T00:00:00.000Z"));
   assert.equal(duplicate.duplicate, true);
-  assert.equal(delivered.length, 1);
+  assert.equal(delivered.length, 0);
 });
 
-test("cloud tick records delivery failure instead of treating a dispatch request as delivery", async () => {
+test("cloud tick cannot reach a paid delivery callback while the execution ceiling is zero", async () => {
   const mock = mockSupabase();
   const adapter = store(mock);
   await adapter.mutateState((state) => state.assignments.push({
@@ -98,12 +99,15 @@ test("cloud tick records delivery failure instead of treating a dispatch request
     objective: "Reject cloud delivery", status: "queued", attempt: 1, createdAt: "2026-08-24T00:00:00.000Z",
     updatedAt: "2026-08-24T00:00:00.000Z", lastDispatchAt: null, deliveryStatus: "not_dispatched"
   }));
-  const worker = createCloudWorker({ store: adapter, deliver: async () => { throw new Error("gateway unavailable"); } });
+  let deliveryCalls = 0;
+  const worker = createCloudWorker({ store: adapter, deliver: async () => { deliveryCalls += 1; throw new Error("gateway unavailable"); } });
   const result = await worker.tick(new Date("2026-08-24T00:01:00.000Z"));
-  assert.equal(result.deliveries[0].status, "failed");
+  assert.deepEqual(result.deliveries, []);
+  assert.equal(deliveryCalls, 0);
   const state = await adapter.readState();
-  assert.equal(state.assignments[0].deliveryStatus, "failed");
-  assert.deepEqual(state.dispatchLog.map(({ status }) => status), ["dispatch_requested", "delivery_failed"]);
+  assert.equal(state.assignments[0].status, "queued");
+  assert.equal(state.assignments[0].deliveryStatus, "not_dispatched");
+  assert.deepEqual(state.dispatchLog, []);
 });
 
 test("GitHub dispatcher invokes the supported executive workflow on the configured deployment ref", async () => {
@@ -177,7 +181,11 @@ test("CEO request advances through Chief of Staff, independent executives, and s
     dispatched.push(record);
     return { status: "submitted_to_github", deliveryId: record.idempotencyKey };
   };
-  const intake = await submitChiefOfStaffRequest({ requestId: "CEO-REVENUE-DIAGNOSTIC", request: "Diagnose the revenue funnel using verified internal evidence." }, { store: adapter, deliver });
+  const intake = await submitChiefOfStaffRequest({
+    requestId: "CHATGPT-GH-42",
+    request: "Diagnose the revenue funnel using verified internal evidence.",
+    returnChannel: { type: "github_issue", repository: "HRPassionGuy/career-journey-growth-engine", issueNumber: 42 }
+  }, { store: adapter, deliver });
   const worker = createCloudWorker({ store: adapter, deliver });
 
   async function complete(assignmentId, executive, result) {
@@ -199,6 +207,9 @@ test("CEO request advances through Chief of Staff, independent executives, and s
   assert.equal(dispatched.length, 3, "duplicate result cannot dispatch children twice");
 
   let state = await adapter.readState();
+  const original = state.assignments.find((item) => item.id === intake.assignmentId);
+  assert.equal(original.requestId, "CHATGPT-GH-42");
+  assert.deepEqual(original.returnChannel, { type: "github_issue", repository: "HRPassionGuy/career-journey-growth-engine", issueNumber: 42 });
   const children = state.assignments.filter((item) => item.parentAssignmentId === intake.assignmentId);
   assert.equal(children.length, 2);
   assert.equal(state.handoffs.filter((item) => item.status === "open").length, 2);
